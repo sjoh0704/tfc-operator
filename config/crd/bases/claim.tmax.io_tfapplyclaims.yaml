@@ -1,0 +1,125 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.3.0
+  creationTimestamp: null
+  name: tfapplyclaims.claim.tmax.io
+spec:
+  group: claim.tmax.io
+  names:
+    kind: TFApplyClaim
+    listKind: TFApplyClaimList
+    plural: tfapplyclaims
+    singular: tfapplyclaim
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: TFApplyClaim is the Schema for the tfapplyclaims API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TFApplyClaimSpec defines the desired state of TFApplyClaim
+          properties:
+            branch:
+              description: Git Branch
+              type: string
+            destroy:
+              description: Whether to perform "terraform destory"
+              type: boolean
+            secret:
+              description: Secret Name for Git Credential
+              type: string
+            type:
+              description: Git Repoistory Type (Public, Private)
+              type: string
+            url:
+              description: Git URL (HCL Code)
+              type: string
+            variable:
+              description: Terraform Variable
+              type: string
+            version:
+              description: Terraform CLI Version
+              type: string
+          type: object
+        status:
+          description: TFApplyClaimStatus defines the observed state of TFApplyClaim
+          properties:
+            action:
+              description: Action defines the action that administrator apply
+              type: string
+            apply:
+              description: Apply defines the information about "terraform apply"
+              type: string
+            commit:
+              description: Commit defines the latest commit id when apply or destroy
+              type: string
+            destroy:
+              description: Destroy defines the information about "terraform destroy"
+              type: string
+            log:
+              description: State defines the contents of stdout-stderr log for terraform
+                cmd
+              type: string
+            phase:
+              description: Phase defines the current step for Terraform Claim
+              type: string
+            plans:
+              description: Plans defines the information about "terraform plan"
+              items:
+                properties:
+                  commit:
+                    description: The latest Commid ID that "terraform plan" peformed
+                      in
+                    type: string
+                  lastexectiontime:
+                    description: Last time that "terraform plan" performed.
+                    type: string
+                  log:
+                    description: Stdout-StdErr Log about Plan Cmd
+                    type: string
+                type: object
+              type: array
+            resource:
+              description: Resource defines the count about added, updated, or deleted
+                resources in Cloud Platform
+              properties:
+                added:
+                  type: integer
+                deleted:
+                  type: integer
+                updated:
+                  type: integer
+              type: object
+            state:
+              description: State defines the contents for Terraform State File
+              type: string
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
