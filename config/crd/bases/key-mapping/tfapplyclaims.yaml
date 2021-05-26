@@ -1,0 +1,117 @@
+---
+apiVersion: "apiextensions.k8s.io/v1beta1"
+kind: "CustomResourceDefinition"
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: "v0.3.0"
+  creationTimestamp: null
+  name: "tfapplyclaims.claim.tmax.io"
+spec:
+  group: "claim.tmax.io"
+  names:
+    kind: "TFApplyClaim"
+    listKind: "TFApplyClaimList"
+    plural: "tfapplyclaims"
+    singular: "tfapplyclaim"
+  scope: "Namespaced"
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema"
+      properties:
+        apiVersion:
+          description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.apiVersion"
+          type: "string"
+        kind:
+          description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.kind"
+          type: "string"
+        metadata:
+          type: "object"
+        spec:
+          description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec"
+          properties:
+            branch:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.branch"
+              type: "string"
+            destroy:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.destroy"
+              type: "boolean"
+            secret:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.secret"
+              type: "string"
+            type:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.type"
+              type: "string"
+            url:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.url"
+              type: "string"
+            variable:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.variable"
+              type: "string"
+            version:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.version"
+              type: "string"
+          type: "object"
+        status:
+          description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status"
+          properties:
+            action:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.action"
+              type: "string"
+            apply:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.apply"
+              type: "string"
+            commit:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.commit"
+              type: "string"
+            destroy:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.destroy"
+              type: "string"
+            log:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.log"
+              type: "string"
+            phase:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.phase"
+              type: "string"
+            plans:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.plans"
+              items:
+                properties:
+                  commit:
+                    description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.plans.items.properties.commit"
+                    type: "string"
+                  lastexectiontime:
+                    description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.plans.items.properties.lastexectiontime"
+                    type: "string"
+                  log:
+                    description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.plans.items.properties.log"
+                    type: "string"
+                type: "object"
+              type: "array"
+            resource:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.resource"
+              properties:
+                added:
+                  type: "integer"
+                deleted:
+                  type: "integer"
+                updated:
+                  type: "integer"
+              type: "object"
+            state:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.state"
+              type: "string"
+          type: "object"
+      type: "object"
+  version: "v1alpha1"
+  versions:
+  - name: "v1alpha1"
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
