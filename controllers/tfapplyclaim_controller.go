@@ -42,6 +42,8 @@ import (
 	"github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 	claimv1alpha1 "github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 	"github.com/tmax-cloud/tfc-operator/util"
+
+	"os"
 )
 
 // TFApplyClaimReconciler reconciles a TFApplyClaim object
@@ -99,6 +101,9 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	fmt.Println(repoType)
 	fmt.Println(url)
 	fmt.Println(branch)
+
+	tfc_worker := os.Getenv("TFC_WORKER")
+	fmt.Println(tfc_worker)
 
 	helper, _ := patch.NewHelper(apply, r.Client)
 
@@ -765,6 +770,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClaim) *appsv1.Deployment {
 	ls := labelsForApply(m.Name)
 	replicas := int32(1) //m.Spec.Size
+	image_path := os.Getenv("TFC_WORKER")
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -782,7 +788,7 @@ func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClai
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image:           "tmaxcloudck/tfc-worker:v0.0.1",
+						Image:           image_path, //"tmaxcloudck/tfc-worker:v0.0.1",
 						Name:            "ubuntu",
 						Command:         []string{"/bin/sleep", "3650d"},
 						ImagePullPolicy: "Always",
