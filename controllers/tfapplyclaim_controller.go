@@ -302,7 +302,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			stderr.Reset()
 
 			//cmd := "terraform init" + " " + opt_terraform
-			cmd = "cd " + dest + ";" + "terraform init"
+			cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
 
 			fmt.Println(stdout.String())
@@ -362,7 +362,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				commitID = strings.TrimRight(stdout.String(), "\r\n")
 			}
 
-			cmd = "cd " + dest + ";" + "terraform init"
+			cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
 
 			fmt.Println(stdout.String())
@@ -620,7 +620,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			stderr.Reset()
 
 			//cmd := "terraform init" + " " + opt_terraform
-			cmd = "cd " + dest + ";" + "terraform init"
+			cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
 
 			fmt.Println(stdout.String())
