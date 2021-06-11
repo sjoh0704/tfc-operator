@@ -68,8 +68,8 @@ spec:
             destroy:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.destroy"
               type: "string"
-            log:
-              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.log"
+            reason:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.reason"
               type: "string"
             phase:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.phase"

@@ -73,10 +73,6 @@ spec:
             destroy:
               description: Destroy defines the information about "terraform destroy"
               type: string
-            log:
-              description: State defines the contents of stdout-stderr log for terraform
-                cmd
-              type: string
             phase:
               description: Phase defines the current step for Terraform Claim
               type: string
@@ -96,6 +92,10 @@ spec:
                     type: string
                 type: object
               type: array
+            reason:
+              description: Reason defines the reason why TFApplyClaim is Error or
+                Rejected
+              type: string
             resource:
               description: Resource defines the count about added, updated, or deleted
                 resources in Cloud Platform

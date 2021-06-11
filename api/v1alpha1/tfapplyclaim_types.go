@@ -65,8 +65,8 @@ type TFApplyClaimStatus struct {
 	Commit string `json:"commit,omitempty"`
 	// Resource defines the count about added, updated, or deleted resources in Cloud Platform
 	Resource Resource `json:"resource,omitempty"`
-	// State defines the contents of stdout-stderr log for terraform cmd
-	Log string `json:"log,omitempty"`
+	// Reason defines the reason why TFApplyClaim is Error or Rejected
+	Reason string `json:"reason,omitempty"`
 }
 
 type Plan struct {
