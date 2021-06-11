@@ -1,6 +1,29 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.14.1 start -------------------->
+
+## tfc-operator_5.0.14.1 (2021. 06. 11. (금) 16:59:09 KST)
+
+### Added
+
+### Changed
+  - [mod] TFApplyClaim 승인 과정 Reject 처리 로직 추가 by gyeongyeol-choi
+  - [mod] terraform init 시 플러그인 모듈 인증 skip 로직 추가 by gyeongyeol-choi
+
+### Fixed
+  - [ims][262548] tfc-worker 이미지 경로 변경 가능하도록 Deployment Environment 로직 추가 by gyeongyeol-choi
+
+### CRD yaml
+
+### Etc
+  - [etc] Manifest 경로 수정 by gyeongyeol-choi
+  - [etc] key-mapping 파일 추가 by gyeongyeol-choi
+  - [etc] update image name & tag in kustomization by gyeongyeol-choi
+  - [etc] init by gyeongyeol-choi
+
+<!--------------------- v5.0.14.1 end --------------------->
+
 <!-------------------- v5.0.13.2 start -------------------->
 
 ## tfc-operator_5.0.13.2 (2021. 06. 09. (수) 16:58:24 KST)
