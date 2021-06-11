@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.14.2 start -------------------->
+
+## tfc-operator_5.0.14.2 (2021. 06. 11. (금) 17:17:09 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] Changlog 스크립트 수정 by gyeongyeol-choi
+
+<!--------------------- v5.0.14.2 end --------------------->
+
 <!-------------------- v5.0.14.1 start -------------------->
 
 ## tfc-operator_5.0.14.1 (2021. 06. 11. (금) 16:59:09 KST)
