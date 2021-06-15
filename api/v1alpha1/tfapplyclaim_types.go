@@ -28,16 +28,20 @@ type TFApplyClaimSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// +kubebuilder:validation:Required
 	// Git Repoistory Type (Public, Private)
-	Type string `json:"type,omitempty"`
+	Type string `json:"type"`
+	// +kubebuilder:validation:Required
 	// Terraform CLI Version
-	Version string `json:"version,omitempty"`
+	Version string `json:"version"`
+	// +kubebuilder:validation:Required
 	// Git URL (HCL Code)
-	URL string `json:"url,omitempty"`
+	URL string `json:"url"`
 	// Git Branch
 	Branch string `json:"branch,omitempty"`
+	// +kubebuilder:validation:Required
 	// Secret Name for Git Credential
-	Secret string `json:"secret,omitempty"`
+	Secret string `json:"secret"`
 	// Whether to perform "terraform destory"
 	Destroy bool `json:"destroy,omitempty"`
 	// Terraform Variable

@@ -88,9 +88,9 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	repoType := apply.Spec.Type
 	version := apply.Spec.Version
 
-	if version == "" {
-		version = "0.11.13"
-	}
+	//if version == "" {
+	//	version = "0.11.13"
+	//}
 
 	url := apply.Spec.URL
 	branch := apply.Spec.Branch
