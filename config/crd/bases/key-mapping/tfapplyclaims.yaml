@@ -52,6 +52,11 @@ spec:
             version:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.version"
               type: "string"
+          required:
+          - "secret"
+          - "type"
+          - "url"
+          - "version"
           type: "object"
         status:
           description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status"
