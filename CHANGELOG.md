@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.15.0 start -------------------->
+
+## tfc-operator_5.0.15.0 (2021. 06. 17. (목) 15:14:33 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] TFApplyClaim Spec 중 일부 Required Field 처리 by gyeongyeol-choi
+
+<!--------------------- v5.0.15.0 end --------------------->
+
 <!-------------------- v5.0.14.2 start -------------------->
 
 ## tfc-operator_5.0.14.2 (2021. 06. 11. (금) 17:17:09 KST)
