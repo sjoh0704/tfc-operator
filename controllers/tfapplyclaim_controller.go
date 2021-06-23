@@ -463,6 +463,8 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				return ctrl.Result{}, err
 			} else {
 				apply.Status.Commit = strings.TrimRight(stdout.String(), "\r\n")
+				apply.Status.URL = apply.Spec.URL
+				apply.Status.Branch = apply.Spec.Branch
 			}
 
 			if apply.Spec.Variable != "" {
