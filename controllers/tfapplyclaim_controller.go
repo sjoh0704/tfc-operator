@@ -806,31 +806,113 @@ func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClai
 							ContainerPort: 11211,
 							Name:          "ubuntu",
 						}},
-						Env: []corev1.EnvVar{
-							{
-								Name: "GIT_ID",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
-										Key:                  "id",
-									},
-								},
-							},
-							{
-								Name: "GIT_PW",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
-										Key:                  "pw",
-									},
-								},
-							},
-						},
 					}},
 				},
 			},
 		},
 	}
+	if m.Spec.Type == "private" {
+		dep = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      m.Name,
+				Namespace: m.Namespace,
+			},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: &replicas,
+				Selector: &metav1.LabelSelector{
+					MatchLabels: ls,
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: ls,
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							Image:           image_path, //"tmaxcloudck/tfc-worker:v0.0.1",
+							Name:            "ubuntu",
+							Command:         []string{"/bin/sleep", "3650d"},
+							ImagePullPolicy: "Always",
+							Ports: []corev1.ContainerPort{{
+								ContainerPort: 11211,
+								Name:          "ubuntu",
+							}},
+							Env: []corev1.EnvVar{
+								{
+									Name: "GIT_ID",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
+											Key:                  "id",
+										},
+									},
+								},
+								{
+									Name: "GIT_PW",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
+											Key:                  "pw",
+										},
+									},
+								},
+							},
+						}},
+					},
+				},
+			},
+		}
+	}
+	/*
+		dep := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      m.Name,
+				Namespace: m.Namespace,
+			},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: &replicas,
+				Selector: &metav1.LabelSelector{
+					MatchLabels: ls,
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: ls,
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							Image:           image_path, //"tmaxcloudck/tfc-worker:v0.0.1",
+							Name:            "ubuntu",
+							Command:         []string{"/bin/sleep", "3650d"},
+							ImagePullPolicy: "Always",
+							Ports: []corev1.ContainerPort{{
+								ContainerPort: 11211,
+								Name:          "ubuntu",
+							}},
+							Env: []corev1.EnvVar{
+								{
+									Name: "GIT_ID",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
+											Key:                  "id",
+										},
+									},
+								},
+								{
+									Name: "GIT_PW",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
+											Key:                  "pw",
+										},
+									},
+								},
+							},
+						}},
+					},
+				},
+			},
+		}
+	*/
 	// Set Provider instance as the owner and controller
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep

@@ -58,7 +58,6 @@ spec:
               description: Terraform CLI Version
               type: string
           required:
-          - secret
           - type
           - url
           - version
@@ -71,6 +70,9 @@ spec:
               type: string
             apply:
               description: Apply defines the information about "terraform apply"
+              type: string
+            branch:
+              description: Branch defines the Git Branch
               type: string
             commit:
               description: Commit defines the latest commit id when apply or destroy
@@ -114,6 +116,9 @@ spec:
               type: object
             state:
               description: State defines the contents for Terraform State File
+              type: string
+            url:
+              description: URL defines the Git URL (HCL Code)
               type: string
           type: object
       type: object

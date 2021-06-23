@@ -39,9 +39,8 @@ type TFApplyClaimSpec struct {
 	URL string `json:"url"`
 	// Git Branch
 	Branch string `json:"branch,omitempty"`
-	// +kubebuilder:validation:Required
 	// Secret Name for Git Credential
-	Secret string `json:"secret"`
+	Secret string `json:"secret,omitempty"`
 	// Whether to perform "terraform destory"
 	Destroy bool `json:"destroy,omitempty"`
 	// Terraform Variable
@@ -65,6 +64,10 @@ type TFApplyClaimStatus struct {
 	Destroy string `json:"destroy,omitempty"`
 	// State defines the contents for Terraform State File
 	State string `json:"state,omitempty"`
+	// URL defines the Git URL (HCL Code)
+	URL string `json:"url,omitempty"`
+	// Branch defines the Git Branch
+	Branch string `json:"branch,omitempty"`
 	// Commit defines the latest commit id when apply or destroy
 	Commit string `json:"commit,omitempty"`
 	// Resource defines the count about added, updated, or deleted resources in Cloud Platform
