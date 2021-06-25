@@ -1,6 +1,24 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.16.0 start -------------------->
+
+## tfc-operator_5.0.16.0 (2021. 06. 25. (금) 11:15:16 KST)
+
+### Added
+
+### Changed
+  - [mod] terraform apply 명령 처리 시, Git 관련 정보 저장 by gyeongyeol-choi
+  - [mod] Public Repo 지원을 위한 Git Credential Secret 처리 로직 수정 by gyeongyeol-choi
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.16.0 end --------------------->
+
 <!-------------------- v5.0.15.0 start -------------------->
 
 ## tfc-operator_5.0.15.0 (2021. 06. 17. (목) 15:14:33 KST)
