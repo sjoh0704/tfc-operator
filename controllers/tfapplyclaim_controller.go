@@ -88,15 +88,13 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	repoType := apply.Spec.Type
 	version := apply.Spec.Version
 
-	//if version == "" {
-	//	version = "0.11.13"
-	//}
-
 	url := apply.Spec.URL
 	branch := apply.Spec.Branch
 
 	dest := "HCL_DIR"
 	//opt_terraform := "-chdir=/" + dest // only terrform 0.14+
+
+	secret := apply.Spec.Secret
 
 	fmt.Println(repoType)
 	fmt.Println(url)
@@ -122,6 +120,16 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			///
 		}
 	}()
+
+	if repoType == "private" && secret == "" {
+		apply.Status.Phase = "Error"
+		apply.Status.Action = ""
+		apply.Status.Reason = "In private repo, secret (git credential) is needed"
+		return ctrl.Result{}, nil
+	} else if apply.Status.Phase == "Error" && apply.Status.Reason == "In private repo, secret (git credential) is needed" {
+		apply.Status.Phase = "Awaiting"
+		apply.Status.Reason = ""
+	}
 
 	if apply.Status.Phase == "" || ((apply.Status.Phase == "Error" || apply.Status.Phase == "Rejected") && apply.Status.Action == "Approve") {
 		apply.Status.Phase = "Awaiting"
