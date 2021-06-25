@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.16.1 start -------------------->
+
+## tfc-operator_5.0.16.1 (2021. 06. 25. (금) 17:00:29 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+  - [ims][262346] private repo type의 Claim 생성 시, secret (git credential)을 넣지 않았을 경우의 에러 처리 로직 구현 by gyeongyeol-choi
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.16.1 end --------------------->
+
 <!-------------------- v5.0.16.0 start -------------------->
 
 ## tfc-operator_5.0.16.0 (2021. 06. 25. (금) 11:15:16 KST)
