@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.16.2 start -------------------->
+
+## tfc-operator_5.0.16.2 (2021. 06. 25. (금) 18:07:33 KST)
+
+### Added
+
+### Changed
+  - [mod] Secret 참조에 대한 에러 처리 로직 세분화 by gyeongyeol-choi
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.16.2 end --------------------->
+
 <!-------------------- v5.0.16.1 start -------------------->
 
 ## tfc-operator_5.0.16.1 (2021. 06. 25. (금) 17:00:29 KST)
