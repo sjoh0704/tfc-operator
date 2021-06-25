@@ -94,7 +94,9 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	dest := "HCL_DIR"
 	//opt_terraform := "-chdir=/" + dest // only terrform 0.14+
 
-	secret := apply.Spec.Secret
+	secretName := apply.Spec.Secret
+
+	secret := &corev1.Secret{}
 
 	fmt.Println(repoType)
 	fmt.Println(url)
@@ -121,14 +123,41 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		}
 	}()
 
-	if repoType == "private" && secret == "" {
-		apply.Status.Phase = "Error"
-		apply.Status.Action = ""
-		apply.Status.Reason = "In private repo, secret (git credential) is needed"
-		return ctrl.Result{}, nil
-	} else if apply.Status.Phase == "Error" && apply.Status.Reason == "In private repo, secret (git credential) is needed" {
-		apply.Status.Phase = "Awaiting"
-		apply.Status.Reason = ""
+	// Check the Secret (Git Credential) for Terraform HCL Code
+	if repoType == "private" {
+		if secretName == "" {
+			apply.Status.Phase = "Error"
+			apply.Status.Action = ""
+			apply.Status.Reason = "Secret (git credential) is Needed"
+			return ctrl.Result{}, err
+		}
+
+		err = r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: apply.Namespace}, secret)
+		if err != nil {
+			// Error reading the object - requeue the request.
+			log.Error(err, "Failed to get Secret")
+
+			apply.Status.Phase = "Error"
+			apply.Status.Action = ""
+			apply.Status.Reason = "Failed to get Secret"
+			return ctrl.Result{}, err
+		}
+
+		_, exists_id := secret.Data["id"]
+		_, exists_pw := secret.Data["pw"]
+
+		if !exists_id && !exists_pw {
+			apply.Status.Phase = "Error"
+			apply.Status.Action = ""
+			apply.Status.Reason = "Invalid Secret (id, pw)"
+			return ctrl.Result{}, err
+		}
+
+		if apply.Status.Phase == "Error" && (apply.Status.Reason == "Secret (git credential) is Needed" ||
+			apply.Status.Reason == "Failed to get Secret" || apply.Status.Reason == "Invalid Secret (id, pw)") {
+			apply.Status.Phase = "Awaiting"
+			apply.Status.Reason = ""
+		}
 	}
 
 	if apply.Status.Phase == "" || ((apply.Status.Phase == "Error" || apply.Status.Phase == "Rejected") && apply.Status.Action == "Approve") {
@@ -872,57 +901,6 @@ func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClai
 			},
 		}
 	}
-	/*
-		dep := &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      m.Name,
-				Namespace: m.Namespace,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Replicas: &replicas,
-				Selector: &metav1.LabelSelector{
-					MatchLabels: ls,
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: ls,
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{{
-							Image:           image_path, //"tmaxcloudck/tfc-worker:v0.0.1",
-							Name:            "ubuntu",
-							Command:         []string{"/bin/sleep", "3650d"},
-							ImagePullPolicy: "Always",
-							Ports: []corev1.ContainerPort{{
-								ContainerPort: 11211,
-								Name:          "ubuntu",
-							}},
-							Env: []corev1.EnvVar{
-								{
-									Name: "GIT_ID",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
-											Key:                  "id",
-										},
-									},
-								},
-								{
-									Name: "GIT_PW",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
-											Key:                  "pw",
-										},
-									},
-								},
-							},
-						}},
-					},
-				},
-			},
-		}
-	*/
 	// Set Provider instance as the owner and controller
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
