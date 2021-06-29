@@ -113,7 +113,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			///
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
-			apply.Status.Reason = err.Error()
+			apply.Status.Reason = "TFApplyClaim patch error"
 
 			err := r.Status().Update(ctx, apply)
 			if err != nil {
@@ -250,7 +250,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			log.Error(err, "Failed to create in-cluster config")
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
-			apply.Status.Reason = err.Error()
+			apply.Status.Reason = "Failed to create in-cluster config"
 			return ctrl.Result{}, err
 		}
 		// creates the clientset
@@ -259,7 +259,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			log.Error(err, "Failed to create clientset")
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
-			apply.Status.Reason = err.Error()
+			apply.Status.Reason = "Failed to create clientset"
 			return ctrl.Result{}, err
 		}
 
@@ -298,7 +298,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Clone Git Repository")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Clone Git Repository"
 				return ctrl.Result{}, err
 			}
 
@@ -316,7 +316,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 					log.Error(err, "Failed to Checkout Git Branch")
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
-					apply.Status.Reason = err.Error()
+					apply.Status.Reason = "Failed to Checkout Git Branch"
 					return ctrl.Result{}, err
 				}
 			}
@@ -345,7 +345,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Initialize Terraform")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Initialize Terraform"
 				return ctrl.Result{}, err
 			}
 
@@ -363,7 +363,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Initialize Terraform")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Initialize Terraform"
 				return ctrl.Result{}, err
 			} else {
 				apply.Status.Phase = "Approved"
@@ -388,7 +388,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Pull Git Repository")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Pull Git Repository"
 				return ctrl.Result{}, err
 			}
 
@@ -407,7 +407,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Get Commit ID")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Get Commit ID"
 				return ctrl.Result{}, err
 			} else {
 				commitID = strings.TrimRight(stdout.String(), "\r\n")
@@ -423,7 +423,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Initialize Terraform")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Initialize Terraform"
 				return ctrl.Result{}, err
 			}
 
@@ -442,7 +442,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 					log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
-					apply.Status.Reason = err.Error()
+					apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
 					return ctrl.Result{}, err
 				}
 			}
@@ -463,7 +463,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Plan Terraform")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Plan Terraform"
 				return ctrl.Result{}, err
 			} else {
 				apply.Status.Phase = "Planned"
@@ -500,7 +500,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Get Commit ID")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Get Commit ID"
 				return ctrl.Result{}, err
 			} else {
 				apply.Status.Commit = strings.TrimRight(stdout.String(), "\r\n")
@@ -523,7 +523,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 					log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
-					apply.Status.Reason = err.Error()
+					apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
 					return ctrl.Result{}, err
 				}
 			}
@@ -544,7 +544,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Apply Terraform")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Apply Terraform"
 				return ctrl.Result{}, err
 			} else {
 				apply.Status.Apply = stdoutStderr
@@ -620,7 +620,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Clone Git Repository")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Clone Git Repository"
 				return ctrl.Result{}, err
 			}
 
@@ -638,7 +638,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 					log.Error(err, "Failed to Checkout Git Branch")
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
-					apply.Status.Reason = err.Error()
+					apply.Status.Reason = "Failed to Checkout Git Branch"
 					return ctrl.Result{}, err
 				}
 			}
@@ -665,7 +665,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Initialize Terraform")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Initialize Terraform"
 				return ctrl.Result{}, err
 			}
 
@@ -683,7 +683,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Initialize Terraform")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Initialize Terraform"
 				return ctrl.Result{}, err
 			}
 
@@ -702,7 +702,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Revert Commit")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Revert Commit"
 				return ctrl.Result{}, err
 			}
 
@@ -722,7 +722,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Recover Terraform State")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Recover Terraform State"
 				return ctrl.Result{}, err
 			}
 
@@ -741,7 +741,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 					log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
-					apply.Status.Reason = err.Error()
+					apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
 					return ctrl.Result{}, err
 				}
 			}
@@ -762,7 +762,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				log.Error(err, "Failed to Destroy Terraform")
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Destroy Terraform"
 				return ctrl.Result{}, err
 			} else {
 				apply.Status.Destroy = stdoutStderr
@@ -799,7 +799,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			if err != nil {
 				log.Error(err, "Failed to Read tfstate file")
 				apply.Status.Phase = "Error"
-				apply.Status.Reason = err.Error()
+				apply.Status.Reason = "Failed to Read tfstate file"
 				return ctrl.Result{}, err
 			} else {
 				apply.Status.State = stdout.String()
