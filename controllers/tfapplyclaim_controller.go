@@ -267,19 +267,23 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		if apply.Status.Phase == "Awaiting" && apply.Status.Action == "Approve" {
 
 			// 1. Git Clone Repository
-			if repoType == "private" {
-				var protocol string
+			//if repoType == "private" {
+			var protocol string
 
-				if strings.Contains(url, "http://") {
-					protocol = "http://"
-				} else if strings.Contains(url, "https://") {
-					protocol = "https://"
-				}
-
-				url = strings.TrimLeft(url, protocol)
-				//url = protocol + id + ":" + pw + "@" + url
-				url = protocol + "$GIT_ID:$GIT_PW" + "@" + url
+			if strings.Contains(url, "http://") {
+				protocol = "http://"
+			} else if strings.Contains(url, "https://") {
+				protocol = "https://"
 			}
+
+			url = strings.TrimLeft(url, protocol)
+			//url = protocol + id + ":" + pw + "@" + url
+			if repoType == "private" {
+				url = protocol + "$GIT_ID:$GIT_PW" + "@" + url
+			} else {
+				url = protocol + "TMP_ID:TMP_PW" + "@" + url
+			}
+			//}
 
 			stdout.Reset()
 			stderr.Reset()
