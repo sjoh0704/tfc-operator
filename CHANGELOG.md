@@ -1,6 +1,25 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.16.3 start -------------------->
+
+## tfc-operator_5.0.16.3 (2021. 07. 01. (목) 15:14:17 KST)
+
+### Added
+
+### Changed
+  - [mod] 에러 발생에 대한 이전상태 정보 관리 기능 추가 by gyeongyeol-choi
+  - [mod] repo type 혼동에 따른  무한 프리징 에러 해결 by gyeongyeol-choi
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] 에러 상세 내용을 명확히 파악 가능하도록 Reason 필드 재정의 by gyeongyeol-choi
+
+<!--------------------- v5.0.16.3 end --------------------->
+
 <!-------------------- v5.0.16.2 start -------------------->
 
 ## tfc-operator_5.0.16.2 (2021. 06. 25. (금) 18:07:33 KST)
