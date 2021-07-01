@@ -99,6 +99,9 @@ spec:
                     type: string
                 type: object
               type: array
+            prephase:
+              description: Phase defines the current step for Terraform Claim
+              type: string
             reason:
               description: Reason defines the reason why TFApplyClaim is Error or
                 Rejected

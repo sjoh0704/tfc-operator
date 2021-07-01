@@ -111,6 +111,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		if err := helper.Patch(ctx, apply); err != nil {
 			log.Error(err, "TFApplyClaim patch error")
 			///
+			apply.Status.PrePhase = apply.Status.Phase
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
 			apply.Status.Reason = "TFApplyClaim patch error"
@@ -126,6 +127,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	// Check the Secret (Git Credential) for Terraform HCL Code
 	if repoType == "private" {
 		if secretName == "" {
+			apply.Status.PrePhase = ""
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
 			apply.Status.Reason = "Secret (git credential) is Needed"
@@ -136,7 +138,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		if err != nil {
 			// Error reading the object - requeue the request.
 			log.Error(err, "Failed to get Secret")
-
+			apply.Status.PrePhase = ""
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
 			apply.Status.Reason = "Failed to get Secret"
@@ -147,6 +149,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		_, exists_pw := secret.Data["pw"]
 
 		if !exists_id && !exists_pw {
+			apply.Status.PrePhase = ""
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
 			apply.Status.Reason = "Invalid Secret (id, pw)"
@@ -155,17 +158,20 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 		if apply.Status.Phase == "Error" && (apply.Status.Reason == "Secret (git credential) is Needed" ||
 			apply.Status.Reason == "Failed to get Secret" || apply.Status.Reason == "Invalid Secret (id, pw)") {
+			apply.Status.PrePhase = apply.Status.Phase
 			apply.Status.Phase = "Awaiting"
 			apply.Status.Reason = ""
 		}
 	}
 
 	if apply.Status.Phase == "" || ((apply.Status.Phase == "Error" || apply.Status.Phase == "Rejected") && apply.Status.Action == "Approve") {
+		apply.Status.PrePhase = apply.Status.Phase
 		apply.Status.Phase = "Awaiting"
 		return ctrl.Result{Requeue: true}, nil
 	}
 
 	if apply.Status.Action == "Reject" {
+		apply.Status.PrePhase = apply.Status.Phase
 		apply.Status.Phase = "Rejected"
 	}
 
@@ -248,6 +254,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		config, err := rest.InClusterConfig()
 		if err != nil {
 			log.Error(err, "Failed to create in-cluster config")
+			apply.Status.PrePhase = apply.Status.Phase
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
 			apply.Status.Reason = "Failed to create in-cluster config"
@@ -257,6 +264,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		clientset, err := kubernetes.NewForConfig(config)
 		if err != nil {
 			log.Error(err, "Failed to create clientset")
+			apply.Status.PrePhase = apply.Status.Phase
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
 			apply.Status.Reason = "Failed to create clientset"
@@ -296,6 +304,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Clone Git Repository")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Clone Git Repository"
@@ -314,6 +323,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 				if err != nil {
 					log.Error(err, "Failed to Checkout Git Branch")
+					apply.Status.PrePhase = apply.Status.Phase
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
 					apply.Status.Reason = "Failed to Checkout Git Branch"
@@ -343,6 +353,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Initialize Terraform")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Initialize Terraform"
@@ -361,11 +372,13 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Initialize Terraform")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Initialize Terraform"
 				return ctrl.Result{}, err
 			} else {
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Approved"
 			}
 		}
@@ -386,6 +399,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Pull Git Repository")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Pull Git Repository"
@@ -405,6 +419,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Get Commit ID")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Get Commit ID"
@@ -421,6 +436,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Initialize Terraform")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Initialize Terraform"
@@ -440,6 +456,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 				if err != nil {
 					log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
+					apply.Status.PrePhase = apply.Status.Phase
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
 					apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
@@ -461,11 +478,13 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Plan Terraform")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Plan Terraform"
 				return ctrl.Result{}, err
 			} else {
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Planned"
 				// add plan to plans
 				var plan claimv1alpha1.Plan
@@ -498,6 +517,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Get Commit ID")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Get Commit ID"
@@ -521,6 +541,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 				if err != nil {
 					log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
+					apply.Status.PrePhase = apply.Status.Phase
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
 					apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
@@ -542,6 +563,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Apply Terraform")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Apply Terraform"
@@ -579,7 +601,10 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Read tfstate file")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
+				apply.Status.Action = ""
+				apply.Status.Reason = "Failed to Read tfstate file"
 				return ctrl.Result{}, err
 			} else {
 				apply.Status.State = stdout.String()
@@ -587,6 +612,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				apply.Status.Resource.Updated = changed
 				apply.Status.Resource.Deleted = destroyed
 
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Applied"
 			}
 		}
@@ -618,6 +644,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Clone Git Repository")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Clone Git Repository"
@@ -636,6 +663,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 				if err != nil {
 					log.Error(err, "Failed to Checkout Git Branch")
+					apply.Status.PrePhase = apply.Status.Phase
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
 					apply.Status.Reason = "Failed to Checkout Git Branch"
@@ -663,6 +691,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Initialize Terraform")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Initialize Terraform"
@@ -681,6 +710,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Initialize Terraform")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Initialize Terraform"
@@ -700,6 +730,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Revert Commit")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Revert Commit"
@@ -720,6 +751,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Recover Terraform State")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Recover Terraform State"
@@ -739,6 +771,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 				if err != nil {
 					log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
+					apply.Status.PrePhase = apply.Status.Phase
 					apply.Status.Phase = "Error"
 					apply.Status.Action = ""
 					apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
@@ -760,6 +793,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Destroy Terraform")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Destroy Terraform"
@@ -798,6 +832,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			if err != nil {
 				log.Error(err, "Failed to Read tfstate file")
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
 				apply.Status.Reason = "Failed to Read tfstate file"
 				return ctrl.Result{}, err
@@ -808,6 +843,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				apply.Status.Resource.Deleted = destroyed
 
 				apply.Spec.Destroy = false
+				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Destroyed"
 			}
 

@@ -56,6 +56,8 @@ type TFApplyClaimStatus struct {
 	Action string `json:"action,omitempty"`
 	// Phase defines the current step for Terraform Claim
 	Phase string `json:"phase,omitempty"`
+	// Phase defines the current step for Terraform Claim
+	PrePhase string `json:"prephase,omitempty"`
 	// Plans defines the information about "terraform plan"
 	Plans []Plan `json:"plans,omitempty"`
 	// Apply defines the information about "terraform apply"
