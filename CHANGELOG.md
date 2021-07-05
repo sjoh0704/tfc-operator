@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.17.1 start -------------------->
+
+## tfc-operator_5.0.17.1 (2021. 07. 05. (월) 16:31:50 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+  - [ims][265432] Git Credential ID/PW 내 특수문자에 대한 예외처리 by gyeongyeol-choi
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.17.1 end --------------------->
+
 <!-------------------- v5.0.17.0 start -------------------->
 
 ## tfc-operator_5.0.17.0 (2021. 07. 01. (목) 17:48:16 KST)
