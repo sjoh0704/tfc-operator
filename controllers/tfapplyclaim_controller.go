@@ -296,7 +296,10 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			stdout.Reset()
 			stderr.Reset()
 
-			cmd := "git clone " + url + " " + dest
+			rep_id := "GIT_ID=$(echo $GIT_ID | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
+			rep_pw := "GIT_PW=$(echo $GIT_PW | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
+
+			cmd := rep_id + rep_pw + "git clone " + url + " " + dest
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
 
 			fmt.Println(stdout.String())
@@ -619,24 +622,30 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 		// 5. Terraform Destroy (if required)
 		if apply.Status.Phase == "Applied" && apply.Spec.Destroy == true {
+			//if repoType == "private" {
+			var protocol string
+
+			if strings.Contains(url, "http://") {
+				protocol = "http://"
+			} else if strings.Contains(url, "https://") {
+				protocol = "https://"
+			}
+
+			url = strings.TrimLeft(url, protocol)
+			//url = protocol + id + ":" + pw + "@" + url
 			if repoType == "private" {
-				var protocol string
-
-				if strings.Contains(url, "http://") {
-					protocol = "http://"
-				} else if strings.Contains(url, "https://") {
-					protocol = "https://"
-				}
-
-				url = strings.TrimLeft(url, protocol)
-				//url = protocol + id + ":" + pw + "@" + url
 				url = protocol + "$GIT_ID:$GIT_PW" + "@" + url
+			} else {
+				url = protocol + "TMP_ID:TMP_PW" + "@" + url
 			}
 
 			stdout.Reset()
 			stderr.Reset()
 
-			cmd := "git clone " + url + " " + dest
+			rep_id := "GIT_ID=$(echo $GIT_ID | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
+			rep_pw := "GIT_PW=$(echo $GIT_PW | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
+
+			cmd := rep_id + rep_pw + "git clone " + url + " " + dest
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
 
 			fmt.Println(stdout.String())
