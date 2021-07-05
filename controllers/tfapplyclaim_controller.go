@@ -305,7 +305,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			fmt.Println(stdout.String())
 			fmt.Println(stderr.String())
 
-			if err != nil {
+			if err != nil && !strings.Contains(stdout.String(), "already exists") {
 				log.Error(err, "Failed to Clone Git Repository")
 				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
@@ -346,7 +346,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			cmd = "cd /tmp;" +
 				fmt.Sprintf("wget %s/%s/%s_%s_linux_amd64.zip;", releases, version, name, version) +
 				fmt.Sprintf("wget %s/%s/%s_%s_SHA256SUMS;", releases, version, name, version) +
-				fmt.Sprintf("unzip -d /bin %s_%s_linux_amd64.zip;", name, version) +
+				fmt.Sprintf("unzip -o -d /bin %s_%s_linux_amd64.zip;", name, version) +
 				"rm -rf /tmp/build;"
 
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
@@ -651,7 +651,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			fmt.Println(stdout.String())
 			fmt.Println(stderr.String())
 
-			if err != nil {
+			if err != nil && !strings.Contains(stdout.String(), "already exists") {
 				log.Error(err, "Failed to Clone Git Repository")
 				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Error"
@@ -690,7 +690,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			cmd = "cd /tmp;" +
 				fmt.Sprintf("wget %s/%s/%s_%s_linux_amd64.zip;", releases, version, name, version) +
 				fmt.Sprintf("wget %s/%s/%s_%s_SHA256SUMS;", releases, version, name, version) +
-				fmt.Sprintf("unzip -d /bin %s_%s_linux_amd64.zip;", name, version) +
+				fmt.Sprintf("unzip -o -d /bin %s_%s_linux_amd64.zip;", name, version) +
 				"rm -rf /tmp/build;"
 
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
