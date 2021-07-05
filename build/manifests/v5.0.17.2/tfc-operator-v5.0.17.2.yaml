@@ -1,0 +1,372 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: tfc-operator-system
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.3.0
+  creationTimestamp: null
+  name: tfapplyclaims.claim.tmax.io
+spec:
+  group: claim.tmax.io
+  names:
+    kind: TFApplyClaim
+    listKind: TFApplyClaimList
+    plural: tfapplyclaims
+    singular: tfapplyclaim
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: TFApplyClaim is the Schema for the tfapplyclaims API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TFApplyClaimSpec defines the desired state of TFApplyClaim
+          properties:
+            branch:
+              description: Git Branch
+              type: string
+            destroy:
+              description: Whether to perform "terraform destory"
+              type: boolean
+            secret:
+              description: Secret Name for Git Credential
+              type: string
+            type:
+              description: Git Repoistory Type (Public, Private)
+              type: string
+            url:
+              description: Git URL (HCL Code)
+              type: string
+            variable:
+              description: Terraform Variable
+              type: string
+            version:
+              description: Terraform CLI Version
+              type: string
+          required:
+          - type
+          - url
+          - version
+          type: object
+        status:
+          description: TFApplyClaimStatus defines the observed state of TFApplyClaim
+          properties:
+            action:
+              description: Action defines the action that administrator apply
+              type: string
+            apply:
+              description: Apply defines the information about "terraform apply"
+              type: string
+            branch:
+              description: Branch defines the Git Branch
+              type: string
+            commit:
+              description: Commit defines the latest commit id when apply or destroy
+              type: string
+            destroy:
+              description: Destroy defines the information about "terraform destroy"
+              type: string
+            phase:
+              description: Phase defines the current step for Terraform Claim
+              type: string
+            plans:
+              description: Plans defines the information about "terraform plan"
+              items:
+                properties:
+                  commit:
+                    description: The latest Commid ID that "terraform plan" peformed
+                      in
+                    type: string
+                  lastexectiontime:
+                    description: Last time that "terraform plan" performed.
+                    type: string
+                  log:
+                    description: Stdout-StdErr Log about Plan Cmd
+                    type: string
+                type: object
+              type: array
+            prephase:
+              description: Phase defines the current step for Terraform Claim
+              type: string
+            reason:
+              description: Reason defines the reason why TFApplyClaim is Error or
+                Rejected
+              type: string
+            resource:
+              description: Resource defines the count about added, updated, or deleted
+                resources in Cloud Platform
+              properties:
+                added:
+                  type: integer
+                deleted:
+                  type: integer
+                updated:
+                  type: integer
+              type: object
+            state:
+              description: State defines the contents for Terraform State File
+              type: string
+            url:
+              description: URL defines the Git URL (HCL Code)
+              type: string
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tfc-operator-leader-election-role
+  namespace: tfapplyclaim
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: tfc-operator-manager-role
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - claim.tmax.io
+  resources:
+  - tfapplyclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - claim.tmax.io
+  resources:
+  - tfapplyclaims/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - claim.tmax.io
+  resources:
+  - tfapplyclaims/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tfc-operator-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tfc-operator-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tfc-operator-leader-election-rolebinding
+  namespace: tfapplyclaim
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tfc-operator-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: tfapplyclaim
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tfc-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tfc-operator-manager-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: tfapplyclaim
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tfc-operator-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tfc-operator-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: tfapplyclaim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: tfc-operator-controller-manager-metrics-service
+  namespace: tfapplyclaim
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: tfc-operator-controller-manager
+  namespace: tfapplyclaim
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      - args:
+        - --metrics-addr=127.0.0.1:8080
+        - --enable-leader-election
+        command:
+        - /manager
+        image: tmaxcloudck/tfc-operator:b5.0.17.2
+        name: manager
+      terminationGracePeriodSeconds: 10

@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.17.2 start -------------------->
+
+## tfc-operator_5.0.17.2 (2021. 07. 05. (월) 17:56:39 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] Default Branch (main, master)로의  Checkout 실패에 대한 예외 처리 (already exists) by gyeongyeol-choi
+
+<!--------------------- v5.0.17.2 end --------------------->
+
 <!-------------------- v5.0.17.1 start -------------------->
 
 ## tfc-operator_5.0.17.1 (2021. 07. 05. (월) 16:31:50 KST)
