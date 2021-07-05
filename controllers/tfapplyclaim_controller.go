@@ -324,7 +324,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				fmt.Println(stdout.String())
 				fmt.Println(stderr.String())
 
-				if err != nil {
+				if err != nil && !strings.Contains(stdout.String(), "already exists") {
 					log.Error(err, "Failed to Checkout Git Branch")
 					apply.Status.PrePhase = apply.Status.Phase
 					apply.Status.Phase = "Error"
@@ -670,7 +670,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				fmt.Println(stdout.String())
 				fmt.Println(stderr.String())
 
-				if err != nil {
+				if err != nil && !strings.Contains(stdout.String(), "already exists") {
 					log.Error(err, "Failed to Checkout Git Branch")
 					apply.Status.PrePhase = apply.Status.Phase
 					apply.Status.Phase = "Error"
