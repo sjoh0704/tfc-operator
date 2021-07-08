@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.17.6 start -------------------->
+
+## tfc-operator_5.0.17.6 (2021. 07. 08. (목) 13:33:28 KST)
+
+### Added
+
+### Changed
+  - [mod] Terraform Plan/Apply/Destroy 명령 처리 과정에서 에러 발생 시 로그 내용 조회 가능하도록 로직 수정 by gyeongyeol-choi
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.17.6 end --------------------->
+
 <!-------------------- v5.0.17.4 start -------------------->
 
 ## tfc-operator_5.0.17.4 (2021. 07. 08. (목) 12:36:38 KST)
