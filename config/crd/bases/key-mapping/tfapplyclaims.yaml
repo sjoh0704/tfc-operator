@@ -53,7 +53,6 @@ spec:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.spec.properties.version"
               type: "string"
           required:
-          - "secret"
           - "type"
           - "url"
           - "version"
@@ -67,14 +66,14 @@ spec:
             apply:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.apply"
               type: "string"
+            branch:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.branch"
+              type: "string"
             commit:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.commit"
               type: "string"
             destroy:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.destroy"
-              type: "string"
-            reason:
-              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.reason"
               type: "string"
             phase:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.phase"
@@ -94,6 +93,12 @@ spec:
                     type: "string"
                 type: "object"
               type: "array"
+            prephase:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.prephase"
+              type: "string"
+            reason:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.reason"
+              type: "string"
             resource:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.resource"
               properties:
@@ -106,6 +111,9 @@ spec:
               type: "object"
             state:
               description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.state"
+              type: "string"
+            url:
+              description: "%tfapplyclaims.yaml.spec.validation.openAPIV3Schema.properties.status.properties.url"
               type: "string"
           type: "object"
       type: "object"
