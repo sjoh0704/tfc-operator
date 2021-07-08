@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.17.4 start -------------------->
+
+## tfc-operator_5.0.17.4 (2021. 07. 08. (목) 12:36:38 KST)
+
+### Added
+
+### Changed
+  - [mod] Terraform Version에 따른 Plugin 인증 처리 로직 추가 by gyeongyeol-choi
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.17.4 end --------------------->
+
 <!-------------------- v5.0.17.3 start -------------------->
 
 ## tfc-operator_5.0.17.3 (2021. 07. 05. (월) 19:27:40 KST)
