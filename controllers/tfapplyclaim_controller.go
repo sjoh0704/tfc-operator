@@ -88,6 +88,12 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	repoType := apply.Spec.Type
 	version := apply.Spec.Version
 
+	versions := strings.Split(apply.Spec.Version, ".")
+
+	majorVersion, _ := strconv.Atoi(versions[0])
+	minorVersion, _ := strconv.Atoi(versions[1])
+	//hotfixVersion := versions[2]
+
 	url := apply.Spec.URL
 	branch := apply.Spec.Branch
 
@@ -367,7 +373,11 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			stderr.Reset()
 
 			//cmd := "terraform init" + " " + opt_terraform
-			cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
+			if int(majorVersion) >= 1 || minorVersion >= 15 {
+				cmd = "cd " + dest + ";" + "terraform init"
+			} else {
+				cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
+			}
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
 
 			fmt.Println(stdout.String())
@@ -431,7 +441,11 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				commitID = strings.TrimRight(stdout.String(), "\r\n")
 			}
 
-			cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
+			if int(majorVersion) >= 1 || minorVersion >= 15 {
+				cmd = "cd " + dest + ";" + "terraform init"
+			} else {
+				cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
+			}
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
 
 			fmt.Println(stdout.String())
@@ -711,7 +725,11 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			stderr.Reset()
 
 			//cmd := "terraform init" + " " + opt_terraform
-			cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
+			if int(majorVersion) >= 1 || minorVersion >= 15 {
+				cmd = "cd " + dest + ";" + "terraform init"
+			} else {
+				cmd = "cd " + dest + ";" + "terraform init -verify-plugins=false"
+			}
 			err = util.ExecPodCmd(clientset, config, podNames[0], apply.Namespace, cmd, nil, &stdout, &stderr)
 
 			fmt.Println(stdout.String())
