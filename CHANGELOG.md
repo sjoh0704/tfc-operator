@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.17.3 start -------------------->
+
+## tfc-operator_5.0.17.3 (2021. 07. 05. (월) 19:27:40 KST)
+
+### Added
+
+### Changed
+  - [mod] Terraform Init 중복 처리 시 에러 수정 by gyeongyeol-choi
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.17.3 end --------------------->
+
 <!-------------------- v5.0.17.2 start -------------------->
 
 ## tfc-operator_5.0.17.2 (2021. 07. 05. (월) 17:56:39 KST)
