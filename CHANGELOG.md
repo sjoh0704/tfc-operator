@@ -1,6 +1,24 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.17.7 start -------------------->
+
+## tfc-operator_5.0.17.7 (2021. 07. 08. (목) 18:09:31 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] Terraform Worker Pod 생성 지연 시간 변경 (5 sec -> 15 sec) by gyeongyeol-choi
+  - [etc] CRD 업데이트에 따른 key mapping 파일 수정 by gyeongyeol-choi
+
+<!--------------------- v5.0.17.7 end --------------------->
+
 <!-------------------- v5.0.17.6 start -------------------->
 
 ## tfc-operator_5.0.17.6 (2021. 07. 08. (목) 13:33:28 KST)
