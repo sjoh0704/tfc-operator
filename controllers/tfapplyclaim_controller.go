@@ -223,6 +223,9 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			return ctrl.Result{}, nil
 		}
 
+		fmt.Println("15 seconds delay....")
+		time.Sleep(time.Second * 15)
+
 		// Update the Provider status with the pod names
 		// List the pods for this provider's deployment
 		podList := &corev1.PodList{}
@@ -246,9 +249,6 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		} else {
 			log.Info("Ready to Execute Terraform Pod!")
 		}
-
-		fmt.Println("5 seconds delay....")
-		time.Sleep(time.Second * 5)
 
 		fmt.Println(podNames)
 		fmt.Println("podNames[0]:" + podNames[0])
