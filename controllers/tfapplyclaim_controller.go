@@ -493,6 +493,20 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			stdoutStderr := stdout.String() + "\n" + stderr.String()
 
+			//apply.Status.PrePhase = apply.Status.Phase
+			//apply.Status.Phase = "Planned"
+			// add plan to plans
+			var plan claimv1alpha1.Plan
+			//plan.LastExectionTime = time.Now().String()
+			plan.LastExectionTime = time.Now().Format("2006-01-02 15:04:05") // yyyy-MM-dd HH:mm:ss
+			plan.Commit = commitID
+			plan.Log = stdoutStderr
+
+			if len(apply.Status.Plans) == capacity {
+				apply.Status.Plans = dequeuePlan(apply.Status.Plans, capacity)
+			}
+			apply.Status.Plans = append([]claimv1alpha1.Plan{plan}, apply.Status.Plans...)
+
 			if err != nil {
 				log.Error(err, "Failed to Plan Terraform")
 				apply.Status.PrePhase = apply.Status.Phase
@@ -501,6 +515,10 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				apply.Status.Reason = "Failed to Plan Terraform"
 				return ctrl.Result{}, err
 			} else {
+				apply.Status.PrePhase = apply.Status.Phase
+				apply.Status.Phase = "Planned"
+			}
+			/*else {
 				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Planned"
 				// add plan to plans
@@ -515,7 +533,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				}
 				apply.Status.Plans = append([]claimv1alpha1.Plan{plan}, apply.Status.Plans...)
 
-			}
+			}*/
 		}
 
 		// 4. Terraform Apply
@@ -578,6 +596,8 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			stdoutStderr := stdout.String() + "\n" + stderr.String()
 
+			apply.Status.Apply = stdoutStderr
+
 			if err != nil {
 				log.Error(err, "Failed to Apply Terraform")
 				apply.Status.PrePhase = apply.Status.Phase
@@ -585,9 +605,9 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Apply Terraform"
 				return ctrl.Result{}, err
-			} else {
-				apply.Status.Apply = stdoutStderr
-			}
+			} /*else {
+			apply.Status.Apply = stdoutStderr
+			}*/
 
 			var matched string
 			var added, changed, destroyed int
@@ -818,6 +838,8 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 			stdoutStderr := stdout.String() + "\n" + stderr.String()
 
+			apply.Status.Destroy = stdoutStderr
+
 			if err != nil {
 				log.Error(err, "Failed to Destroy Terraform")
 				apply.Status.PrePhase = apply.Status.Phase
@@ -825,9 +847,9 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				apply.Status.Action = ""
 				apply.Status.Reason = "Failed to Destroy Terraform"
 				return ctrl.Result{}, err
-			} else {
+			} /*else {
 				apply.Status.Destroy = stdoutStderr
-			}
+			}*/
 
 			var matched string
 			var added, changed, destroyed int
