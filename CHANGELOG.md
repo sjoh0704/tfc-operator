@@ -1,6 +1,22 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.19.0 start -------------------->
+
+## tfc-operator_5.0.19.0 (2021. 07. 15. (목) 17:23:08 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.19.0 end --------------------->
+
 <!-------------------- v5.0.18.0 start -------------------->
 
 ## tfc-operator_5.0.18.0 (2021. 07. 09. (금) 09:40:27 KST)
