@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/prometheus/common/log"
@@ -17,7 +18,211 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+
+	claimv1alpha1 "github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 )
+
+func ExecClone(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	var protocol string
+
+	if strings.Contains(apply.Spec.URL, "http://") {
+		protocol = "http://"
+	} else if strings.Contains(apply.Spec.URL, "https://") {
+		protocol = "https://"
+	}
+
+	url := strings.TrimLeft(apply.Spec.URL, protocol)
+
+	if apply.Spec.Type == "private" {
+		url = protocol + "$GIT_ID:$GIT_PW" + "@" + url
+	} else {
+		url = protocol + "TMP_ID:TMP_PW" + "@" + url
+	}
+
+	rep_id := "GIT_ID=$(echo $GIT_ID | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
+	rep_pw := "GIT_PW=$(echo $GIT_PW | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
+
+	cmd := rep_id + rep_pw + "git clone " + url + " " + HCL_DIR
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecBranchCheckout(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" + "git checkout -t origin/" + apply.Spec.Branch
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecTerraformDownload(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	version := apply.Spec.Version
+
+	cmd := "cd /tmp;" +
+		fmt.Sprintf("wget %s/%s/%s_%s_linux_amd64.zip;", TERRAFORM_BINARY_URL, version, TERRAFORM_BINARY_NAME, version) +
+		fmt.Sprintf("wget %s/%s/%s_%s_SHA256SUMS;", TERRAFORM_BINARY_URL, version, TERRAFORM_BINARY_NAME, version) +
+		fmt.Sprintf("unzip -o -d /bin %s_%s_linux_amd64.zip;", TERRAFORM_BINARY_NAME, version) +
+		"rm -rf /tmp/build;"
+
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecTerraformInit(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	var cmd string
+
+	versions := strings.Split(apply.Spec.Version, ".")
+
+	majorVersion, _ := strconv.Atoi(versions[0])
+	minorVersion, _ := strconv.Atoi(versions[1])
+
+	if int(majorVersion) >= 1 || minorVersion >= 15 {
+		cmd = "cd " + HCL_DIR + ";" + "terraform init"
+	} else {
+		cmd = "cd " + HCL_DIR + ";" + "terraform init -verify-plugins=false"
+	}
+
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecGitPull(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" + "git pull"
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecGetCommitID(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" +
+		"git log --pretty=format:\"%H\" | head -n 1"
+
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecCreateVariables(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cat > terraform.tfvars.json << EOL\n" +
+		apply.Spec.Variable + "\nEOL"
+
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecTerraformPlan(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" + "terraform plan"
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecTerraformApply(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" + "terraform apply -auto-approve"
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecReadState(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" +
+		"cat terraform.tfstate"
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecRevertCommit(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" +
+		"git reset " + apply.Status.Commit
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecRecoverState(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" +
+		"cat > terraform.tfstate << EOL\n" +
+		apply.Status.State + "EOL"
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExecTerraformDestroy(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
+
+	cmd := "cd " + HCL_DIR + ";" + "terraform destroy -auto-approve"
+	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 // ExecPodCmd exec command on specific pod and wait the command's output.
 func ExecPodCmd(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
