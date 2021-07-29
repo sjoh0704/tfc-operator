@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.21.0 start -------------------->
+
+## tfc-operator_5.0.21.0 (2021. 07. 29. (목) 15:36:02 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] 코드 리팩토링 (전역변수 처리, 공통로직 함수 모듈화 등) by gyeongyeol-choi
+
+<!--------------------- v5.0.21.0 end --------------------->
+
 <!-------------------- v5.0.20.0 start -------------------->
 
 ## tfc-operator_5.0.20.0 (2021. 07. 22. (목) 14:21:22 KST)
