@@ -151,14 +151,25 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 			return ctrl.Result{}, err
 		}
 
-		_, exists_id := secret.Data["id"]
-		_, exists_pw := secret.Data["pw"]
+		/*
+			_, exists_id := secret.Data["id"]
+			_, exists_pw := secret.Data["pw"]
 
-		if !exists_id && !exists_pw {
+			if !exists_id && !exists_pw {
+				apply.Status.PrePhase = ""
+				apply.Status.Phase = "Error"
+				apply.Status.Action = ""
+				apply.Status.Reason = "Invalid Secret (id, pw)"
+				return ctrl.Result{}, err
+			}
+		*/
+		_, exists_token := secret.Data["token"]
+
+		if !exists_token {
 			apply.Status.PrePhase = ""
 			apply.Status.Phase = "Error"
 			apply.Status.Action = ""
-			apply.Status.Reason = "Invalid Secret (id, pw)"
+			apply.Status.Reason = "Invalid Secret (token)"
 			return ctrl.Result{}, err
 		}
 
@@ -975,24 +986,37 @@ func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClai
 							}},
 							Env: []corev1.EnvVar{
 								{
-									Name: "GIT_ID",
+									Name: "GIT_TOKEN",
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
-											Key:                  "id",
-										},
-									},
-								},
-								{
-									Name: "GIT_PW",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
-											Key:                  "pw",
+											Key:                  "token",
 										},
 									},
 								},
 							},
+							/*
+								Env: []corev1.EnvVar{
+									{
+										Name: "GIT_ID",
+										ValueFrom: &corev1.EnvVarSource{
+											SecretKeyRef: &corev1.SecretKeySelector{
+												LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
+												Key:                  "id",
+											},
+										},
+									},
+									{
+										Name: "GIT_PW",
+										ValueFrom: &corev1.EnvVarSource{
+											SecretKeyRef: &corev1.SecretKeySelector{
+												LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
+												Key:                  "pw",
+											},
+										},
+									},
+								},
+							*/
 						}},
 					},
 				},
