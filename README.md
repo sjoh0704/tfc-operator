@@ -1,5 +1,5 @@
 # TFC-Operator
-TFC-Operator is the Kubenretes Native Operator with GitOPs of Terraform. Supports Github/Gitlab (Public/Private), and uses HCL (Hashicorp Configuration Language) to provision resources in Cloud Platform (e.g. AWS, Azure, GCP, vSPhere.. etc)
+TFC-Operator is the Kubenretes Native Operator with GitOPs of Terraform. Supports Github/Gitlab (Public/Private), and uses HCL (Hashicorp Configuration Language) to provision resources in Cloud Platform (e.g. AWS, Azure, GCP, vSphere.. etc)
 
 # Quick Start
 This guide contains information on creating an EC2 instance on AWS through Terraform Claims (CR).
