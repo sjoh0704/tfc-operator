@@ -1,0 +1,10 @@
+apiVersion: claim.tmax.io/v1alpha1
+kind: TFApplyClaim
+metadata:
+  name: tfapplyclaim-sample
+  namespace: tfapply
+spec:
+  type: public
+  branch: {BRANCH_NAME}
+  version: {TERRAFORM_VERSION}
+  url: {URL}

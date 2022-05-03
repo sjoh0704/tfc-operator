@@ -1,0 +1,11 @@
+apiVersion: claim.tmax.io/v1alpha1
+kind: TFApplyClaim
+metadata:
+  name: tfapplyclaim-sample
+  namespace: tfapply
+spec:
+  type: private
+  branch: {BRANCH_NAME} 
+  version: {TERRAFORM_VERSION}
+  url: {URL}
+  secret: git-credential
