@@ -1,6 +1,26 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.25.1 start -------------------->
+
+## tfc-operator_5.0.25.1 (2022. 05. 18. (수) 19:18:19 KST)
+
+### Added
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] k8s 1.22 업그레이드에 따른 CRD 업데이트 by gyeongyeol-choi
+  - [etc] k8s 1.22 버전 업그레이드에 따른 apiVersion 업그레이드 by gyeongyeol-choi
+  - [etc] TFC-Operator 사용법 가이드 작성 by GitHub
+  - [etc] 테스트용 샘플 매니페스트 파일 업로드 by gyeongyeol-choi
+
+<!--------------------- v5.0.25.1 end --------------------->
+
 <!-------------------- v5.0.25.0 start -------------------->
 
 ## tfc-operator_5.0.25.0 (2021. 08. 27. (금) 18:58:39 KST)
