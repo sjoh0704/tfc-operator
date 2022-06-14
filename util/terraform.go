@@ -34,21 +34,13 @@ func ExecClone(client kubernetes.Interface, config *restclient.Config, podName s
 	}
 
 	url := strings.TrimLeft(apply.Spec.URL, protocol)
-	/*
-		if apply.Spec.Type == "private" {
-			url = protocol + "$GIT_ID:$GIT_PW" + "@" + url
-		} else {
-			url = protocol + "TMP_ID:TMP_PW" + "@" + url
-		}
-	*/
+
 	if apply.Spec.Type == "private" {
 		url = protocol + "$GIT_TOKEN:x-oauth-basic" + "@" + url
 	} else {
 		url = protocol + "TMP_TOKEN:x-oauth-basic" + "@" + url
 	}
 
-	//rep_id := "GIT_ID=$(echo $GIT_ID | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
-	//rep_pw := "GIT_PW=$(echo $GIT_PW | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
 	rep_token := "GIT_TOKEN=$(echo $GIT_TOKEN | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
 
 	cmd := rep_token + "git clone " + url + " " + HCL_DIR
@@ -243,8 +235,6 @@ func ExecPodCmd(client kubernetes.Interface, config *restclient.Config, podName 
 	}
 	req := client.CoreV1().RESTClient().Post().Resource("pods").Name(podName).
 		Namespace(podNamespace).SubResource("exec")
-	//req := client.CoreV1().RESTClient().Post().Resource("pods").Name(podName).
-	//	Namespace("default").SubResource("exec")
 
 	option := &v1.PodExecOptions{
 		Command: cmd,
@@ -310,12 +300,6 @@ func ReadIDFromFile(filename string) (string, error) {
 
 // Initialize Terraform Working Directory
 func InitTerraform_CLI(targetDir string, cloudType string) error {
-	// Download Terraform Plugin (e.g. AWS, Azure, GCP)
-	//cmd1 := exec.Command("bash", "-c", "terraform init")
-	//cmd1.Dir = targetDir
-	//stdoutStderr1, err1 := cmd1.CombinedOutput()
-	//fmt.Printf("%s\n", stdoutStderr1)
-
 	// Select the Terraform Plugin (cloudType: AWS, Azure, GCP)
 	orgDir := HCL_DIR + "/" + ".terraform" + cloudType
 	dstDir := targetDir + "/" + ".terraform"
