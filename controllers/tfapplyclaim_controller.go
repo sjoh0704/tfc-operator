@@ -52,7 +52,66 @@ type TFApplyClaimReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
+/*
+func (t tfapplyclaim) ApplyUpdate (update StatusUpdate) {
+	if update.Action.Set {
+		t.Status.Action = update.Action.Value
+	}
+	if update.Apply.Set {
+		t.Status.Apply = update.Apply.Value
+	}
+	if update.Branch.Set {
+		t.Status.Branch = update.Branch.Value
+	}
+	if update.Commit.Set {
+		t.Status.Commit = update.Commit.Value
+	}
+	if update.Destroy.Set {
+		t.Status.Destroy = update.Destroy.Value
+	}
+	if update.Phase.Set {
+		t.Status.Phase = update.Phase.Value
+	}
+	if update.PrePhase.Set {
+		t.Status.PrePhase = update.PrePhase.Value
+	}
+	if update.Reason.Set {
+		t.Status.Reason = update.Reason.Value
+	}
+	if update.State.Set {
+		t.Status.State = update.State.Value
+	}
+	if update.Url.Set {
+		t.Status.Url = update.Url.Value
+	}
 
+}
+
+type StatusUpdate struct {
+	Action OptionalString
+	Apply OptionalString
+	Branch OptionalString
+    Commit OptionalString
+	Destroy OptionalString
+	Phase OptionalString
+	Prephase OptionalString
+    Reason OptionalString
+	State OptionalString
+    Url OptionalString
+}
+
+type OptionalInt struct {
+    Value int
+    Null bool
+    Set bool
+}
+
+type OptionalString struct {
+    Value string
+    Null bool
+    Set bool
+}
+*/
 var capacity int = 5
 var commitID string
 
@@ -151,7 +210,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		}
 
 		if apply.Status.Phase == "Error" && (apply.Status.Reason == "Secret (git credential) is Needed" ||
-			apply.Status.Reason == "Failed to get Secret" || apply.Status.Reason == "Invalid Secret (id, pw)") {
+			apply.Status.Reason == "Failed to get Secret" || apply.Status.Reason == "Invalid Secret (token)") {
 			apply.Status.PrePhase = apply.Status.Phase
 			apply.Status.Phase = "Awaiting"
 			apply.Status.Reason = ""
@@ -553,6 +612,12 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 
 				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Applied"
+
+				// Add finalizer first if not exist to avoid the race condition between init and delete
+				if !controllerutil.ContainsFinalizer(apply, "claim.tmax.io/terraform-protection") {
+					controllerutil.AddFinalizer(apply, "claim.tmax.io/terraform-protection")
+				}
+			
 			}
 		}
 
@@ -730,6 +795,8 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 				apply.Spec.Destroy = false
 				apply.Status.PrePhase = apply.Status.Phase
 				apply.Status.Phase = "Destroyed"
+
+				controllerutil.RemoveFinalizer(apply, "claim.tmax.io/terraform-protection")
 			}
 
 		}
