@@ -52,66 +52,7 @@ type TFApplyClaimReconciler struct {
 	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
-/*
-func (t tfapplyclaim) ApplyUpdate (update StatusUpdate) {
-	if update.Action.Set {
-		t.Status.Action = update.Action.Value
-	}
-	if update.Apply.Set {
-		t.Status.Apply = update.Apply.Value
-	}
-	if update.Branch.Set {
-		t.Status.Branch = update.Branch.Value
-	}
-	if update.Commit.Set {
-		t.Status.Commit = update.Commit.Value
-	}
-	if update.Destroy.Set {
-		t.Status.Destroy = update.Destroy.Value
-	}
-	if update.Phase.Set {
-		t.Status.Phase = update.Phase.Value
-	}
-	if update.PrePhase.Set {
-		t.Status.PrePhase = update.PrePhase.Value
-	}
-	if update.Reason.Set {
-		t.Status.Reason = update.Reason.Value
-	}
-	if update.State.Set {
-		t.Status.State = update.State.Value
-	}
-	if update.Url.Set {
-		t.Status.Url = update.Url.Value
-	}
 
-}
-
-type StatusUpdate struct {
-	Action OptionalString
-	Apply OptionalString
-	Branch OptionalString
-    Commit OptionalString
-	Destroy OptionalString
-	Phase OptionalString
-	Prephase OptionalString
-    Reason OptionalString
-	State OptionalString
-    Url OptionalString
-}
-
-type OptionalInt struct {
-    Value int
-    Null bool
-    Set bool
-}
-
-type OptionalString struct {
-    Value string
-    Null bool
-    Set bool
-}
-*/
 var capacity int = 5
 var commitID string
 
@@ -924,4 +865,48 @@ func dequeuePlan(slice []v1alpha1.Plan, capacity int) []v1alpha1.Plan {
 	fmt.Println(slice[1:])
 	fmt.Println(slice[:capacity-1])
 	return slice[:capacity-1]
+}
+
+// reconcile handles cluster reconciliation.
+func (r *TFApplyClaimReconciler) reconcile(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+	phases := []func(context.Context, *claimv1alpha1.TFApplyClaim) (ctrl.Result, error){}
+	action := tfapplyclaim.Status.Action
+
+	// 공통적으로 수행
+	phases = append(
+		phases,
+		r.ReadyClaim,
+	)
+
+	if action == "Approve" {
+		phases = append(phases, r.ApproveClaim)
+	} else if action == "Reject"{
+		phases = append(phases, r.RejectClaim)
+	} else if action == "Plan" {
+		phases = append(phases, r.PlanClaim)
+	} else if action == "Apply" {
+		phases = append(phases, r.ApplyClaim)
+	} else if tfapplyclaim.Sepc.Destroy == true {
+		phases = append(phases, r.DestroyClaim)
+	}
+
+	res := ctrl.Result{}
+	errs := []error{}
+	// phases 를 돌면서, append 한 함수들을 순차적으로 수행하고,
+	// 다시 requeue 가 되어야 하는 경우, LowestNonZeroResult 함수를 통해 requeueAfter time 이 가장 짧은 함수를 찾는다.
+	for _, phase := range phases {
+		// Call the inner reconciliation methods.
+		phaseResult, err := phase(ctx, clusterManager)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if len(errs) > 0 {
+			continue
+		}
+
+		// Aggregate phases which requeued without err
+		res = util.LowestNonZeroResult(res, phaseResult)
+	}
+
+	return res, kerrors.NewAggregate(errs)
 }
