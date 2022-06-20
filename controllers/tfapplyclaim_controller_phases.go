@@ -52,44 +52,44 @@ var capacity int = 5
 var commitID string
 
 func (r *TFApplyClaimReconciler) ReadyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
-	repoType := tfapply.Spec.Type
+	repoType := tfapplyclaim.Spec.Type
 
 	// Check the Secret (Git Credential) for Terraform HCL Code
 	if repoType == "private" {
 		if secretName == "" {
-			tfapply.Status.PrePhase = ""
-			tfapply.Status.Phase = "Error"
-			tfapply.Status.Action = ""
-			tfapply.Status.Reason = "Secret (git credential) is Needed"
+			tfapplyclaim.Status.PrePhase = ""
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Secret (git credential) is Needed"
 			return ctrl.Result{}, err
 		}
 
-		err = r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: tfapply.Namespace}, secret)
+		err = r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: tfapplyclaim.Namespace}, secret)
 		if err != nil {
 			// Error reading the object - requeue the request.
 			log.Error(err, "Failed to get Secret")
-			tfapply.Status.PrePhase = ""
-			tfapply.Status.Phase = "Error"
-			tfapply.Status.Action = ""
-			tfapply.Status.Reason = "Failed to get Secret"
+			tfapplyclaim.Status.PrePhase = ""
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to get Secret"
 			return ctrl.Result{}, err
 		}
 
 		_, exists_token := secret.Data["token"]
 
 		if !exists_token {
-			tfapply.Status.PrePhase = ""
-			tfapply.Status.Phase = "Error"
-			tfapply.Status.Action = ""
-			tfapply.Status.Reason = "Invalid Secret (token)"
+			tfapplyclaim.Status.PrePhase = ""
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Invalid Secret (token)"
 			return ctrl.Result{}, err
 		}
 
-		if tfapply.Status.Phase == "Error" && (tfapply.Status.Reason == "Secret (git credential) is Needed" ||
-			tfapply.Status.Reason == "Failed to get Secret" || tfapply.Status.Reason == "Invalid Secret (token)") {
-			tfapply.Status.PrePhase = tfapply.Status.Phase
-			tfapply.Status.Phase = "Awaiting"
-			tfapply.Status.Reason = ""
+		if tfapplyclaim.Status.Phase == "Error" && (tfapplyclaim.Status.Reason == "Secret (git credential) is Needed" ||
+			tfapplyclaim.Status.Reason == "Failed to get Secret" || tfapplyclaim.Status.Reason == "Invalid Secret (token)") {
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Awaiting"
+			tfapplyclaim.Status.Reason = ""
 		}
 	}
 }
@@ -97,10 +97,10 @@ func (r *TFApplyClaimReconciler) ReadyClaim(ctx context.Context, tfapplyclaim *c
 func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	// Check if the deployment already exists, if not create a new one
 	found := &appsv1.Deployment{}
-	err = r.Get(ctx, types.NamespacedName{Name: apply.Name, Namespace: apply.Namespace}, found)
+	err = r.Get(ctx, types.NamespacedName{Name: tfapplyclaim.Name, Namespace: tfapplyclaim.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new deployment
-		dep := r.deploymentForApply(apply)
+		dep := r.deploymentForApply(tfapplyclaim)
 		log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
 		err = r.Create(ctx, dep)
 		if err != nil {
@@ -116,7 +116,7 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 
 	// Ensure the deployment size is the same as the spec
 	size := int32(1)
-	if (apply.Status.Phase == "Applied" || apply.Status.Phase == "Destroyed" || apply.Status.Phase == "Rejected") && apply.Spec.Destroy == false {
+	if (tfapplyclaim.Status.Phase == "Applied" || tfapplyclaim.Status.Phase == "Destroyed" || tfapplyclaim.Status.Phase == "Rejected") && tfapplyclaim.Spec.Destroy == false {
 		size = 0
 	}
 	if *found.Spec.Replicas != size {
@@ -132,7 +132,7 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 
 	if size == 0 {
 		log.Info("There's no need to Create Terraform Pod...")
-		apply.Status.Action = ""
+		tfapplyclaim.Status.Action = ""
 		return ctrl.Result{}, nil
 	}
 
@@ -143,12 +143,12 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 	// List the pods for this provider's deployment
 	podList := &corev1.PodList{}
 	listOpts := []client.ListOption{
-		client.InNamespace(apply.Namespace),
-		client.MatchingLabels(labelsForApply(apply.Name)),
+		client.InNamespace(tfapplyclaim.Namespace),
+		client.MatchingLabels(labelsForApply(tfapplyclaim.Name)),
 		client.MatchingFields{"status.phase": "Running"},
 	}
 	if err = r.List(ctx, podList, listOpts...); err != nil {
-		log.Error(err, "Failed to list pods", "TFApplyClaim.Namespace", apply.Namespace, "TFApplyClaim.Name", apply.Name)
+		log.Error(err, "Failed to list pods", "TFApplyClaim.Namespace", tfapplyclaim.Namespace, "TFApplyClaim.Name", tfapplyclaim.Name)
 		return ctrl.Result{}, err
 	}
 	podNames := getPodNames(podList.Items)
@@ -173,59 +173,59 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		log.Error(err, "Failed to create in-cluster config")
-		apply.Status.PrePhase = apply.Status.Phase
-		apply.Status.Phase = "Error"
-		apply.Status.Action = ""
-		apply.Status.Reason = "Failed to create in-cluster config"
+		tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+		tfapplyclaim.Status.Phase = "Error"
+		tfapplyclaim.Status.Action = ""
+		tfapplyclaim.Status.Reason = "Failed to create in-cluster config"
 		return ctrl.Result{}, err
 	}
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Error(err, "Failed to create clientset")
-		apply.Status.PrePhase = apply.Status.Phase
-		apply.Status.Phase = "Error"
-		apply.Status.Action = ""
-		apply.Status.Reason = "Failed to create clientset"
+		tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+		tfapplyclaim.Status.Phase = "Error"
+		tfapplyclaim.Status.Action = ""
+		tfapplyclaim.Status.Reason = "Failed to create clientset"
 		return ctrl.Result{}, err
 	}
 
 	// Go Client - POD EXEC
-	if apply.Status.Phase == "Awaiting" && apply.Status.Action == "Approve" {
+	if tfapplyclaim.Status.Phase == "Awaiting" && tfapplyclaim.Status.Action == "Approve" {
 
 		// 1. Git Clone Repository
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecClone(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecClone(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		if err != nil && !strings.Contains(stdout.String(), "already exists") {
 			log.Error(err, "Failed to Clone Git Repository")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Clone Git Repository"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Clone Git Repository"
 			return ctrl.Result{}, err
 		}
 
-		if apply.Spec.Branch != "" {
+		if tfapplyclaim.Spec.Branch != "" {
 			stdout.Reset()
 			stderr.Reset()
 
-			err = util.ExecBranchCheckout(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+			err = util.ExecBranchCheckout(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 			fmt.Println(stdout.String())
 			fmt.Println(stderr.String())
 
 			if err != nil && !strings.Contains(stdout.String(), "already exists") {
 				log.Error(err, "Failed to Checkout Git Branch")
-				apply.Status.PrePhase = apply.Status.Phase
-				apply.Status.Phase = "Error"
-				apply.Status.Action = ""
-				apply.Status.Reason = "Failed to Checkout Git Branch"
+				tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+				tfapplyclaim.Status.Phase = "Error"
+				tfapplyclaim.Status.Action = ""
+				tfapplyclaim.Status.Reason = "Failed to Checkout Git Branch"
 				return ctrl.Result{}, err
 			}
 		}
@@ -234,64 +234,61 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecTerraformDownload(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecTerraformDownload(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Download Terraform")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Download Terraform"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Download Terraform"
 			return ctrl.Result{}, err
 		}
 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecTerraformInit(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecTerraformInit(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Initialize Terraform")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Initialize Terraform"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Initialize Terraform"
 			return ctrl.Result{}, err
 		} else {
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Approved"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Approved"
 		}
 	}
 }
 
-func (r *TFApplyClaimReconciler) RejectClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
-
-}
 
 func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	// 3. Terraform Plan
-	if (apply.Status.Phase == "Approved" || apply.Status.Phase == "Planned") && apply.Status.Action == "Plan" {
+	if (tfapplyclaim.Status.Phase == "Approved" || tfapplyclaim.Status.Phase == "Planned") && tfapplyclaim.Status.Action == "Plan" {
 		// Git Pull
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecGitPull(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecGitPull(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Pull Git Repository")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Pull Git Repository"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Pull Git Repository"
 			return ctrl.Result{}, err
 		}
 
@@ -299,50 +296,50 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecGetCommitID(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecGetCommitID(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Get Commit ID")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Get Commit ID"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Get Commit ID"
 			return ctrl.Result{}, err
 		} else {
 			commitID = strings.TrimRight(stdout.String(), "\r\n")
 		}
 
-		err = util.ExecTerraformInit(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecTerraformInit(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Initialize Terraform")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Initialize Terraform"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Initialize Terraform"
 			return ctrl.Result{}, err
 		}
 
-		if apply.Spec.Variable != "" {
+		if tfapplyclaim.Spec.Variable != "" {
 			stdout.Reset()
 			stderr.Reset()
 
-			err = util.ExecCreateVariables(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+			err = util.ExecCreateVariables(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 			fmt.Println(stdout.String())
 			fmt.Println(stderr.String())
 
 			if err != nil {
 				log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
-				apply.Status.PrePhase = apply.Status.Phase
-				apply.Status.Phase = "Error"
-				apply.Status.Action = ""
-				apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
+				tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+				tfapplyclaim.Status.Phase = "Error"
+				tfapplyclaim.Status.Action = ""
+				tfapplyclaim.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
 				return ctrl.Result{}, err
 			}
 		}
@@ -350,7 +347,7 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecTerraformPlan(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecTerraformPlan(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
@@ -365,21 +362,21 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 		plan.Commit = commitID
 		plan.Log = stdoutStderr
 
-		if len(apply.Status.Plans) == capacity {
-			apply.Status.Plans = dequeuePlan(apply.Status.Plans, capacity)
+		if len(tfapplyclaim.Status.Plans) == capacity {
+			tfapplyclaim.Status.Plans = dequeuePlan(tfapplyclaim.Status.Plans, capacity)
 		}
-		apply.Status.Plans = append([]claimv1alpha1.Plan{plan}, apply.Status.Plans...)
+		tfapplyclaim.Status.Plans = append([]claimv1alpha1.Plan{plan}, tfapplyclaim.Status.Plans...)
 
 		if err != nil {
 			log.Error(err, "Failed to Plan Terraform")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Plan Terraform"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Plan Terraform"
 			return ctrl.Result{}, err
 		} else {
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Planned"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Planned"
 		}
 
 	}
@@ -387,42 +384,42 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 
 func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	// 4. Terraform Apply
-	if (apply.Status.Phase == "Approved" || apply.Status.Phase == "Planned") && apply.Status.Action == "Apply" {
+	if (tfapplyclaim.Status.Phase == "Approved" || tfapplyclaim.Status.Phase == "Planned") && tfapplyclaim.Status.Action == "Apply" {
 		// Get Commit ID
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecGetCommitID(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecGetCommitID(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 		fmt.Println(stdout.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Get Commit ID")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Get Commit ID"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Get Commit ID"
 			return ctrl.Result{}, err
 		} else {
-			apply.Status.Commit = strings.TrimRight(stdout.String(), "\r\n")
-			apply.Status.URL = apply.Spec.URL
-			apply.Status.Branch = apply.Spec.Branch
+			tfapplyclaim.Status.Commit = strings.TrimRight(stdout.String(), "\r\n")
+			tfapplyclaim.Status.URL = tfapplyclaim.Spec.URL
+			tfapplyclaim.Status.Branch = tfapplyclaim.Spec.Branch
 		}
 
-		if apply.Spec.Variable != "" {
+		if tfapplyclaim.Spec.Variable != "" {
 			stdout.Reset()
 			stderr.Reset()
 
-			err = util.ExecCreateVariables(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+			err = util.ExecCreateVariables(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 			fmt.Println(stdout.String())
 			fmt.Println(stderr.String())
 
 			if err != nil {
 				log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
-				apply.Status.PrePhase = apply.Status.Phase
-				apply.Status.Phase = "Error"
-				apply.Status.Action = ""
-				apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
+				tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+				tfapplyclaim.Status.Phase = "Error"
+				tfapplyclaim.Status.Action = ""
+				tfapplyclaim.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
 				return ctrl.Result{}, err
 			}
 		}
@@ -430,21 +427,21 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecTerraformApply(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecTerraformApply(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		stdoutStderr := stdout.String() + "\n" + stderr.String()
 
-		apply.Status.Apply = stdoutStderr
+		tfapplyclaim.Status.Apply = stdoutStderr
 
 		if err != nil {
 			log.Error(err, "Failed to Apply Terraform")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Apply Terraform"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Apply Terraform"
 			return ctrl.Result{}, err
 		}
 
@@ -468,28 +465,28 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 		stderr.Reset()
 
 		// Read Terraform State File
-		err = util.ExecReadState(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecReadState(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 		fmt.Println(stdout.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Read tfstate file")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Read tfstate file"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Read tfstate file"
 			return ctrl.Result{}, err
 		} else {
-			apply.Status.State = stdout.String()
-			apply.Status.Resource.Added = added
-			apply.Status.Resource.Updated = changed
-			apply.Status.Resource.Deleted = destroyed
+			tfapplyclaim.Status.State = stdout.String()
+			tfapplyclaim.Status.Resource.Added = added
+			tfapplyclaim.Status.Resource.Updated = changed
+			tfapplyclaim.Status.Resource.Deleted = destroyed
 
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Applied"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Applied"
 
 			// Add finalizer first if not exist to avoid the race condition between init and delete
-			if !controllerutil.ContainsFinalizer(apply, "claim.tmax.io/terraform-protection") {
-				controllerutil.AddFinalizer(apply, "claim.tmax.io/terraform-protection")
+			if !controllerutil.ContainsFinalizer(tfapplyclaim, "claim.tmax.io/terraform-protection") {
+				controllerutil.AddFinalizer(tfapplyclaim, "claim.tmax.io/terraform-protection")
 			}
 		
 		}
@@ -498,39 +495,39 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 
 func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	// 5. Terraform Destroy (if required)
-	if apply.Status.Phase == "Applied" && apply.Spec.Destroy == true {
+	if tfapplyclaim.Status.Phase == "Applied" && tfapplyclaim.Spec.Destroy == true {
 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecClone(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecClone(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		if err != nil && !strings.Contains(stdout.String(), "already exists") {
 			log.Error(err, "Failed to Clone Git Repository")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Clone Git Repository"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Clone Git Repository"
 			return ctrl.Result{}, err
 		}
 
-		if apply.Spec.Branch != "" {
+		if tfapplyclaim.Spec.Branch != "" {
 			stdout.Reset()
 			stderr.Reset()
 
-			err = util.ExecBranchCheckout(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+			err = util.ExecBranchCheckout(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 			fmt.Println(stdout.String())
 			fmt.Println(stderr.String())
 
 			if err != nil && !strings.Contains(stdout.String(), "already exists") {
 				log.Error(err, "Failed to Checkout Git Branch")
-				apply.Status.PrePhase = apply.Status.Phase
-				apply.Status.Phase = "Error"
-				apply.Status.Action = ""
-				apply.Status.Reason = "Failed to Checkout Git Branch"
+				tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+				tfapplyclaim.Status.Phase = "Error"
+				tfapplyclaim.Status.Action = ""
+				tfapplyclaim.Status.Reason = "Failed to Checkout Git Branch"
 				return ctrl.Result{}, err
 			}
 		}
@@ -538,31 +535,31 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecTerraformDownload(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecTerraformDownload(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		if err != nil {
 			log.Error(err, "Failed to Initialize Terraform")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Initialize Terraform"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Initialize Terraform"
 			return ctrl.Result{}, err
 		}
 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecTerraformInit(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecTerraformInit(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Initialize Terraform")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Initialize Terraform"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Initialize Terraform"
 			return ctrl.Result{}, err
 		}
 
@@ -570,15 +567,15 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecRevertCommit(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecRevertCommit(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 		fmt.Println(stdout.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Revert Commit")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Revert Commit"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Revert Commit"
 			return ctrl.Result{}, err
 		}
 
@@ -586,32 +583,32 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecRecoverState(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecRecoverState(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 		fmt.Println(stdout.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Recover Terraform State")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Recover Terraform State"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Recover Terraform State"
 			return ctrl.Result{}, err
 		}
 
-		if apply.Spec.Variable != "" {
+		if tfapplyclaim.Spec.Variable != "" {
 			stdout.Reset()
 			stderr.Reset()
 
-			err = util.ExecCreateVariables(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+			err = util.ExecCreateVariables(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 			fmt.Println(stdout.String())
 			fmt.Println(stderr.String())
 
 			if err != nil {
 				log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
-				apply.Status.PrePhase = apply.Status.Phase
-				apply.Status.Phase = "Error"
-				apply.Status.Action = ""
-				apply.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
+				tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+				tfapplyclaim.Status.Phase = "Error"
+				tfapplyclaim.Status.Action = ""
+				tfapplyclaim.Status.Reason = "Failed to Create Variable Definitions (.tfvars) Files"
 				return ctrl.Result{}, err
 			}
 		}
@@ -619,20 +616,20 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecTerraformDestroy(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecTerraformDestroy(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 		fmt.Println(stdout.String())
 		fmt.Println(stderr.String())
 
 		stdoutStderr := stdout.String() + "\n" + stderr.String()
 
-		apply.Status.Destroy = stdoutStderr
+		tfapplyclaim.Status.Destroy = stdoutStderr
 
 		if err != nil {
 			log.Error(err, "Failed to Destroy Terraform")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "Failed to Destroy Terraform"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Action = ""
+			tfapplyclaim.Status.Reason = "Failed to Destroy Terraform"
 			return ctrl.Result{}, err
 		}
 
@@ -653,28 +650,27 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 		stdout.Reset()
 		stderr.Reset()
 
-		err = util.ExecReadState(clientset, config, podNames[0], apply.Namespace, nil, &stdout, &stderr, apply)
+		err = util.ExecReadState(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
 		fmt.Println(stdout.String())
 
 		if err != nil {
 			log.Error(err, "Failed to Read tfstate file")
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Reason = "Failed to Read tfstate file"
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Error"
+			tfapplyclaim.Status.Reason = "Failed to Read tfstate file"
 			return ctrl.Result{}, err
 		} else {
-			apply.Status.State = stdout.String()
-			apply.Status.Resource.Added = added
-			apply.Status.Resource.Updated = changed
-			apply.Status.Resource.Deleted = destroyed
+			tfapplyclaim.Status.State = stdout.String()
+			tfapplyclaim.Status.Resource.Added = added
+			tfapplyclaim.Status.Resource.Updated = changed
+			tfapplyclaim.Status.Resource.Deleted = destroyed
 
-			apply.Spec.Destroy = false
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Destroyed"
+			tfapplyclaim.Spec.Destroy = false
+			tfapplyclaim.Status.PrePhase = tfapplyclaim.Status.Phase
+			tfapplyclaim.Status.Phase = "Destroyed"
 
-			controllerutil.RemoveFinalizer(apply, "claim.tmax.io/terraform-protection")
+			controllerutil.RemoveFinalizer(tfapplyclaim, "claim.tmax.io/terraform-protection")
 		}
-
 	}
 }
 
