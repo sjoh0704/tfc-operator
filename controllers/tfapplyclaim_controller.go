@@ -17,33 +17,21 @@ limitations under the License.
 package controllers
 
 import (
-	"bytes"
-	"fmt"
-	"strconv"
-	"strings"
-	"time"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
 	"context"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 	claimv1alpha1 "github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 	"github.com/tmax-cloud/tfc-operator/util"
-
-	"os"
 )
 
 // TFApplyClaimReconciler reconciles a TFApplyClaim object
@@ -53,9 +41,6 @@ type TFApplyClaimReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-var capacity int = 5
-var commitID string
-
 // +kubebuilder:rbac:groups=claim.tmax.io,resources=tfapplyclaims,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=claim.tmax.io,resources=tfapplyclaims/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=claim.tmax.io,resources=tfapplyclaims/finalizers,verbs=update
@@ -64,7 +49,7 @@ var commitID string
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
 
-func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, reterr error) {
+func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("tfapplyclaim", req.NamespacedName)
 
@@ -86,43 +71,46 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, reter
 
 	// your logic here
 	/*
-	repoType := apply.Spec.Type
+		repoType := apply.Spec.Type
 
-	url := apply.Spec.URL
-	branch := apply.Spec.Branch
+		url := apply.Spec.URL
+		branch := apply.Spec.Branch
 
-	secretName := apply.Spec.Secret
+		secretName := apply.Spec.Secret
 
-	secret := &corev1.Secret{}
+		secret := &corev1.Secret{}
 
-	fmt.Println(repoType)
-	fmt.Println(url)
-	fmt.Println(branch)
+		fmt.Println(repoType)
+		fmt.Println(url)
+		fmt.Println(branch)
 
-	tfc_worker := os.Getenv("TFC_WORKER")
-	fmt.Println(tfc_worker)
+		tfc_worker := os.Getenv("TFC_WORKER")
+		fmt.Println(tfc_worker)
 	*/
 
 	helper, _ := patch.NewHelper(tfapplyclaim, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	
+
 	defer func() {
 		if err := helper.Patch(ctx, tfapplyclaim); err != nil {
 			/*
-			log.Error(err, "TFApplyClaim patch error")
+				log.Error(err, "TFApplyClaim patch error")
 
-			apply.Status.PrePhase = apply.Status.Phase
-			apply.Status.Phase = "Error"
-			apply.Status.Action = ""
-			apply.Status.Reason = "TFApplyClaim patch error"
-			err := r.Status().Update(ctx, apply)
+				apply.Status.PrePhase = apply.Status.Phase
+				apply.Status.Phase = "Error"
+				apply.Status.Action = ""
+				apply.Status.Reason = "TFApplyClaim patch error"
+				err := r.Status().Update(ctx, apply)
 			*/
-			if err != nil {
-				log.Error(err, "Failed to update TFApplyClaim status")
-				reterr = err
-			}
+			/*
+				if err != nil {
+					log.Error(err, "Failed to update TFApplyClaim status")
+					reterr = err
+				}
+			*/
+			reterr = err
 		}
 	}()
 	//return ctrl.Result{RequeueAfter: time.Second * 60}, nil // Reconcile loop rescheduled after 60 seconds
@@ -162,7 +150,7 @@ func (r *TFApplyClaimReconciler) reconcile(ctx context.Context, tfapplyclaim *cl
 		phases = append(phases, r.PlanClaim)
 	} else if action == "Apply" {
 		phases = append(phases, r.ApplyClaim)
-	} else if tfapplyclaim.Sepc.Destroy == true {
+	} else if tfapplyclaim.Spec.Destroy == true {
 		phases = append(phases, r.DestroyClaim)
 	}
 
@@ -172,7 +160,7 @@ func (r *TFApplyClaimReconciler) reconcile(ctx context.Context, tfapplyclaim *cl
 	// 다시 requeue 가 되어야 하는 경우, LowestNonZeroResult 함수를 통해 requeueAfter time 이 가장 짧은 함수를 찾는다.
 	for _, phase := range phases {
 		// Call the inner reconciliation methods.
-		phaseResult, err := phase(ctx, clusterManager)
+		phaseResult, err := phase(ctx, tfapplyclaim)
 		if err != nil {
 			errs = append(errs, err)
 		}

@@ -46,7 +46,7 @@ spec:
                 description: Secret Name for Git Credential
                 type: string
               type:
-                description: Git Repoistory Type (public, private)
+                description: Git Repoistory Type (Public, Private)
                 type: string
               url:
                 description: Git URL (HCL Code)
