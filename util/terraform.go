@@ -44,7 +44,7 @@ func ExecClone(client kubernetes.Interface, config *restclient.Config, podName s
 	rep_token := "GIT_TOKEN=$(echo $GIT_TOKEN | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
 
 	cmd := rep_token + "git clone " + url + " " + HCL_DIR
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func ExecBranchCheckout(client kubernetes.Interface, config *restclient.Config, 
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
 	cmd := "cd " + HCL_DIR + ";" + "git checkout -t origin/" + apply.Spec.Branch
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func ExecTerraformDownload(client kubernetes.Interface, config *restclient.Confi
 		fmt.Sprintf("unzip -o -d /bin %s_%s_linux_amd64.zip;", TERRAFORM_BINARY_NAME, version) +
 		"rm -rf /tmp/build;"
 
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func ExecTerraformInit(client kubernetes.Interface, config *restclient.Config, p
 		cmd = "cd " + HCL_DIR + ";" + "terraform init -verify-plugins=false"
 	}
 
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func ExecGitPull(client kubernetes.Interface, config *restclient.Config, podName
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
 	cmd := "cd " + HCL_DIR + ";" + "git pull"
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -125,7 +125,7 @@ func ExecGetCommitID(client kubernetes.Interface, config *restclient.Config, pod
 	cmd := "cd " + HCL_DIR + ";" +
 		"git log --pretty=format:\"%H\" | head -n 1"
 
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -139,7 +139,7 @@ func ExecCreateVariables(client kubernetes.Interface, config *restclient.Config,
 	cmd := "cat > terraform.tfvars.json << EOL\n" +
 		apply.Spec.Variable + "\nEOL"
 
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func ExecTerraformPlan(client kubernetes.Interface, config *restclient.Config, p
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
 	cmd := "cd " + HCL_DIR + ";" + "terraform plan"
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -163,7 +163,7 @@ func ExecTerraformApply(client kubernetes.Interface, config *restclient.Config, 
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
 	cmd := "cd " + HCL_DIR + ";" + "terraform apply -auto-approve"
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func ExecReadState(client kubernetes.Interface, config *restclient.Config, podNa
 
 	cmd := "cd " + HCL_DIR + ";" +
 		"cat terraform.tfstate"
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -189,7 +189,7 @@ func ExecRevertCommit(client kubernetes.Interface, config *restclient.Config, po
 
 	cmd := "cd " + HCL_DIR + ";" +
 		"git reset " + apply.Status.Commit
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -203,7 +203,7 @@ func ExecRecoverState(client kubernetes.Interface, config *restclient.Config, po
 	cmd := "cd " + HCL_DIR + ";" +
 		"cat > terraform.tfstate << EOL\n" +
 		apply.Status.State + "EOL"
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -215,7 +215,7 @@ func ExecTerraformDestroy(client kubernetes.Interface, config *restclient.Config
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
 	cmd := "cd " + HCL_DIR + ";" + "terraform destroy -auto-approve"
-	err := ExecPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
+	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
 		return err
@@ -223,8 +223,8 @@ func ExecTerraformDestroy(client kubernetes.Interface, config *restclient.Config
 	return nil
 }
 
-// ExecPodCmd exec command on specific pod and wait the command's output.
-func ExecPodCmd(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
+// execPodCmd exec command on specific pod and wait the command's output.
+func execPodCmd(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
 	command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
 
 	cmd := []string{
