@@ -68,26 +68,6 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, ret
 		log.Error(err, "Failed to get TFApplyClaim")
 		return ctrl.Result{}, err
 	}
-
-	// your logic here
-	/*
-		repoType := apply.Spec.Type
-
-		url := apply.Spec.URL
-		branch := apply.Spec.Branch
-
-		secretName := apply.Spec.Secret
-
-		secret := &corev1.Secret{}
-
-		fmt.Println(repoType)
-		fmt.Println(url)
-		fmt.Println(branch)
-
-		tfc_worker := os.Getenv("TFC_WORKER")
-		fmt.Println(tfc_worker)
-	*/
-
 	helper, _ := patch.NewHelper(tfapplyclaim, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -95,25 +75,9 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, ret
 
 	defer func() {
 		if err := helper.Patch(ctx, tfapplyclaim); err != nil {
-			/*
-				log.Error(err, "TFApplyClaim patch error")
-
-				apply.Status.PrePhase = apply.Status.Phase
-				apply.Status.Phase = "Error"
-				apply.Status.Action = ""
-				apply.Status.Reason = "TFApplyClaim patch error"
-				err := r.Status().Update(ctx, apply)
-			*/
-			/*
-				if err != nil {
-					log.Error(err, "Failed to update TFApplyClaim status")
-					reterr = err
-				}
-			*/
 			reterr = err
 		}
 	}()
-	//return ctrl.Result{RequeueAfter: time.Second * 60}, nil // Reconcile loop rescheduled after 60 seconds
 	return r.reconcile(context.TODO(), tfapplyclaim)
 }
 
