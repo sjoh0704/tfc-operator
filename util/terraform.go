@@ -44,6 +44,10 @@ func ExecClone(client kubernetes.Interface, config *restclient.Config, podName s
 	rep_token := "GIT_TOKEN=$(echo $GIT_TOKEN | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
 
 	cmd := rep_token + "git clone " + url + " " + HCL_DIR
+
+	// SSL 미인증 VCS (e.g. Gitlab)을 위한 로직 처리
+	cmd = "git config --global http.sslVerify false;" + cmd
+
 	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
