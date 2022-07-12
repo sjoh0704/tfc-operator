@@ -1,6 +1,25 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.29.0 start -------------------->
+
+## tfc-operator_5.0.29.0 (2022. 07. 12. (화) 13:25:21 KST)
+
+### Added
+  - [feat] 클라우드 리소스 추가 시 (terraform apply), 클레임 리소스 삭제 방지를 위한 Finalizer 적용 by gyeongyeol choi
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] 에러 코드 삭제 by gyeongyeol-choi
+  - [etc] 불필요한 주석 제거 by gyeongyeol-choi
+
+<!--------------------- v5.0.29.0 end --------------------->
+
 <!-------------------- v5.0.25.1 start -------------------->
 
 ## tfc-operator_5.0.25.1 (2022. 05. 18. (수) 19:18:19 KST)
