@@ -154,13 +154,13 @@ func (r *TFApplyClaimReconciler) ReadyClaim(ctx context.Context, tfapplyclaim *c
 				Phase:    OptionalString{"Awaiting", true},
 				Reason:   OptionalString{"", true}})
 		}
+	}
 
-		if tfapplyclaim.Status.Phase == "" {
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Awaiting", true}})
-			return ctrl.Result{Requeue: true}, nil
-		}
+	if tfapplyclaim.Status.Phase == "" {
+		statusUpdate(tfapplyclaim, Status{
+			PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
+			Phase:    OptionalString{"Awaiting", true}})
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	return ctrl.Result{}, nil
