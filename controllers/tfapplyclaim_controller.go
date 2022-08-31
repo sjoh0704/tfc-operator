@@ -83,6 +83,7 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, ret
 
 func (r *TFApplyClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
+	/* FieldIndexer를 통해 status.phase 필드 인덱스를 캐시에 포함 (for MatchingFields) */
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Pod{}, "status.phase", func(rawObj runtime.Object) []string {
 		pod := rawObj.(*corev1.Pod)
 		return []string{string(pod.Status.DeepCopy().Phase)}
@@ -93,7 +94,6 @@ func (r *TFApplyClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&claimv1alpha1.TFApplyClaim{}).
 		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Pod{}).
 		Complete(r)
 }
 
