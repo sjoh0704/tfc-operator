@@ -105,13 +105,17 @@ type OptionalString struct {
 	Set bool
 }
 
+/* Pod Exec Logs (Output / Error) */
 var stdout bytes.Buffer
 var stderr bytes.Buffer
 
+/* Clientset for Kubernetes */
 var clientset *kubernetes.Clientset
 
+/* Terraform Pods List */
 var podNames []string
 
+/* Kubernetes Config (.config) */
 var config *rest.Config
 
 var err error
@@ -221,63 +225,6 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 		return ctrl.Result{}, nil
 	}
 
-	/*
-		log.Info("15 seconds delay....")
-		time.Sleep(time.Second * 15)
-
-		// Update the Provider status with the pod names
-		// List the pods for this provider's deployment
-		podList := &corev1.PodList{}
-		listOpts := []client.ListOption{
-			client.InNamespace(tfapplyclaim.Namespace),
-			client.MatchingLabels(labelsForApply(tfapplyclaim.Name)),
-			client.MatchingFields{"status.phase": "Running"},
-		}
-		if err = r.List(ctx, podList, listOpts...); err != nil {
-			log.Error(err, "Failed to list pods", "TFApplyClaim.Namespace", tfapplyclaim.Namespace, "TFApplyClaim.Name", tfapplyclaim.Name)
-			return ctrl.Result{}, err
-		}
-		podNames := getPodNames(podList.Items)
-
-		if len(podNames) < 1 {
-			log.Info("Not yet create Terraform Pod...")
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		} else if len(podNames) > 1 {
-			log.Info("Not yet terminate Previous Terraform Pod...")
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		} else {
-			log.Info("Ready to Execute Terraform Pod!")
-		}
-
-		fmt.Println(podNames)
-		fmt.Println("podNames[0]:" + podNames[0])
-
-		//var stdout bytes.Buffer
-		//var stderr bytes.Buffer
-
-		// creates the in-cluster config
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			log.Error(err, "Failed to create in-cluster config")
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Error", true},
-				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Failed to create in-cluster config", true}})
-			return ctrl.Result{}, err
-		}
-		// creates the clientset
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			log.Error(err, "Failed to create clientset")
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Error", true},
-				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Failed to create clientset", true}})
-			return ctrl.Result{}, err
-		}
-	*/
 	log.Info("15 seconds delay....")
 	time.Sleep(time.Second * 15)
 
@@ -290,13 +237,6 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	//var stdout bytes.Buffer
-	//var stderr bytes.Buffer
-	fmt.Println("TEST")
-	fmt.Println(podNames[0])
-	fmt.Println(config)
-	fmt.Println(clientset)
 
 	// Go Client - POD EXEC
 	if tfapplyclaim.Status.Phase == "Awaiting" && tfapplyclaim.Status.Action == "Approve" {
@@ -387,63 +327,6 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 
 func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start PlanClaim")
-
-	/* common logic start */
-	/*
-		// Update the Provider status with the pod names
-		// List the pods for this provider's deployment
-		podList := &corev1.PodList{}
-		listOpts := []client.ListOption{
-			client.InNamespace(tfapplyclaim.Namespace),
-			client.MatchingLabels(labelsForApply(tfapplyclaim.Name)),
-			client.MatchingFields{"status.phase": "Running"},
-		}
-		if err := r.List(ctx, podList, listOpts...); err != nil {
-			log.Error(err, "Failed to list pods", "TFApplyClaim.Namespace", tfapplyclaim.Namespace, "TFApplyClaim.Name", tfapplyclaim.Name)
-			return ctrl.Result{}, err
-		}
-		podNames := getPodNames(podList.Items)
-
-		if len(podNames) < 1 {
-			log.Info("Not yet create Terraform Pod...")
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		} else if len(podNames) > 1 {
-			log.Info("Not yet terminate Previous Terraform Pod...")
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		} else {
-			log.Info("Ready to Execute Terraform Pod!")
-		}
-
-		log.Info(podNames)
-		log.Info("podNames[0]:" + podNames[0])
-
-		//var stdout bytes.Buffer
-		//var stderr bytes.Buffer
-
-		// creates the in-cluster config
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			log.Error(err, "Failed to create in-cluster config")
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Error", true},
-				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Failed to create in-cluster config", true}})
-			return ctrl.Result{}, err
-		}
-		// creates the clientset
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			log.Error(err, "Failed to create clientset")
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Error", true},
-				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Failed to create clientset", true}})
-			return ctrl.Result{}, err
-		}
-	*/
-	/* common logic end */
 
 	log.Info("15 seconds delay....")
 	time.Sleep(time.Second * 15)
@@ -576,63 +459,6 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 
 func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start ApplyClaim")
-
-	/* common logic start */
-	/*
-		// Update the Provider status with the pod names
-		// List the pods for this provider's deployment
-		podList := &corev1.PodList{}
-		listOpts := []client.ListOption{
-			client.InNamespace(tfapplyclaim.Namespace),
-			client.MatchingLabels(labelsForApply(tfapplyclaim.Name)),
-			client.MatchingFields{"status.phase": "Running"},
-		}
-		if err := r.List(ctx, podList, listOpts...); err != nil {
-			log.Error(err, "Failed to list pods", "TFApplyClaim.Namespace", tfapplyclaim.Namespace, "TFApplyClaim.Name", tfapplyclaim.Name)
-			return ctrl.Result{}, err
-		}
-		podNames := getPodNames(podList.Items)
-
-		if len(podNames) < 1 {
-			log.Info("Not yet create Terraform Pod...")
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		} else if len(podNames) > 1 {
-			log.Info("Not yet terminate Previous Terraform Pod...")
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		} else {
-			log.Info("Ready to Execute Terraform Pod!")
-		}
-
-		log.Info(podNames)
-		log.Info("podNames[0]:" + podNames[0])
-
-		//var stdout bytes.Buffer
-		//var stderr bytes.Buffer
-
-		// creates the in-cluster config
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			log.Error(err, "Failed to create in-cluster config")
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Error", true},
-				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Failed to create in-cluster config", true}})
-			return ctrl.Result{}, err
-		}
-		// creates the clientset
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			log.Error(err, "Failed to create clientset")
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Error", true},
-				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Failed to create clientset", true}})
-			return ctrl.Result{}, err
-		}
-	*/
-	/* common logic end */
 
 	log.Info("15 seconds delay....")
 	time.Sleep(time.Second * 15)
@@ -767,62 +593,6 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start DestroyClaim")
 
-	/* common logic start */
-	/*
-		// Update the Provider status with the pod names
-		// List the pods for this provider's deployment
-		podList := &corev1.PodList{}
-		listOpts := []client.ListOption{
-			client.InNamespace(tfapplyclaim.Namespace),
-			client.MatchingLabels(labelsForApply(tfapplyclaim.Name)),
-			client.MatchingFields{"status.phase": "Running"},
-		}
-		if err := r.List(ctx, podList, listOpts...); err != nil {
-			log.Error(err, "Failed to list pods", "TFApplyClaim.Namespace", tfapplyclaim.Namespace, "TFApplyClaim.Name", tfapplyclaim.Name)
-			return ctrl.Result{}, err
-		}
-		podNames := getPodNames(podList.Items)
-
-		if len(podNames) < 1 {
-			log.Info("Not yet create Terraform Pod...")
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		} else if len(podNames) > 1 {
-			log.Info("Not yet terminate Previous Terraform Pod...")
-			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-		} else {
-			log.Info("Ready to Execute Terraform Pod!")
-		}
-
-		log.Info(podNames)
-		log.Info("podNames[0]:" + podNames[0])
-
-		//var stdout bytes.Buffer
-		//var stderr bytes.Buffer
-
-		// creates the in-cluster config
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			log.Error(err, "Failed to create in-cluster config")
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Error", true},
-				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Failed to create in-cluster config", true}})
-			return ctrl.Result{}, err
-		}
-		// creates the clientset
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			log.Error(err, "Failed to create clientset")
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Error", true},
-				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Failed to create clientset", true}})
-			return ctrl.Result{}, err
-		}
-	*/
-	/* common logic end */
 	log.Info("15 seconds delay....")
 	time.Sleep(time.Second * 15)
 
@@ -1131,11 +901,8 @@ func dequeuePlan(slice []v1alpha1.Plan, capacity int) []v1alpha1.Plan {
 	return slice[:capacity-1]
 }
 
-//func (r *TFApplyClaimReconciler) createClientSet(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (*kubernetes.Clientset, error) {
+// getPodName defines the pod name of terraform pod
 func (r *TFApplyClaimReconciler) getPodName(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) error {
-	//var clientset *kubernetes.Clientset
-
-	/* common logic start */
 	// Update the Provider status with the pod names
 	// List the pods for this provider's deployment
 	podList := &corev1.PodList{}
@@ -1162,23 +929,7 @@ func (r *TFApplyClaimReconciler) getPodName(ctx context.Context, tfapplyclaim *c
 	return nil
 }
 
-/*
-	if len(podNames) < 1 {
-		log.Info("Not yet create Terraform Pod...")
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	} else if len(podNames) > 1 {
-		log.Info("Not yet terminate Previous Terraform Pod...")
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	} else {
-		log.Info("Ready to Execute Terraform Pod!")
-	}
-
-	log.Info(podNames)
-	log.Info("podNames[0]:" + podNames[0])
-*/
-
-//var stdout bytes.Buffer
-//var stderr bytes.Buffer
+// createClientSet initializes the ClientSet of Kubernetes by InClusterConfig
 func (r *TFApplyClaimReconciler) createClientSet(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) error {
 	// creates the in-cluster config
 	var err error
