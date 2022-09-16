@@ -140,7 +140,7 @@ func ExecGetCommitID(client kubernetes.Interface, config *restclient.Config, pod
 func ExecCreateVariables(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
-	cmd := "cat > terraform.tfvars.json << EOL\n" +
+	cmd := "cd " + HCL_DIR + ";" + "cat > terraform.tfvars.json << EOL\n" +
 		apply.Spec.Variable + "\nEOL"
 
 	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)

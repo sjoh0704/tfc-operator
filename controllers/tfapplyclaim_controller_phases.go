@@ -990,7 +990,7 @@ func (r *TFApplyClaimReconciler) adjustPodCount(ctx context.Context, tfapplyclai
 			return err
 		}
 		// Spec updated - return and requeue
-		return fmt.Errorf("Spec updated - Requeue")
+		return nil
 	}
 
 	return nil
