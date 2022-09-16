@@ -178,6 +178,11 @@ func (r *TFApplyClaimReconciler) ReadyClaim(ctx context.Context, tfapplyclaim *c
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	// If done Apply / Destroy, terraform pods is terminated.
+	if tfapplyclaim.Status.Phase == "Applied" || tfapplyclaim.Status.Phase == "Destroyed" && tfapplyclaim.Spec.Destroy == false {
+		_ = r.adjustPodCount(ctx, tfapplyclaim, true)
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -301,26 +306,26 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start PlanClaim")
 
-	err = r.adjustPodCount(ctx, tfapplyclaim, false)
-	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	}
-
-	log.Info("15 seconds delay....")
-	time.Sleep(time.Second * 15)
-
-	err = r.getPodName(ctx, tfapplyclaim)
-	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	}
-
-	err = r.createClientSet(ctx, tfapplyclaim)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// 3. Terraform Plan
 	if (tfapplyclaim.Status.Phase == "Approved" || tfapplyclaim.Status.Phase == "Planned") && tfapplyclaim.Status.Action == "Plan" {
+		err = r.adjustPodCount(ctx, tfapplyclaim, false)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+
+		log.Info("15 seconds delay....")
+		time.Sleep(time.Second * 15)
+
+		err = r.getPodName(ctx, tfapplyclaim)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+
+		err = r.createClientSet(ctx, tfapplyclaim)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		// Git Pull
 		stdout.Reset()
 		stderr.Reset()
@@ -438,27 +443,27 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 // Status Update: action - apply
 func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start ApplyClaim")
-
-	err = r.adjustPodCount(ctx, tfapplyclaim, false)
-	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	}
-
-	log.Info("15 seconds delay....")
-	time.Sleep(time.Second * 15)
-
-	err = r.getPodName(ctx, tfapplyclaim)
-	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	}
-
-	err = r.createClientSet(ctx, tfapplyclaim)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// 4. Terraform Apply
 	if (tfapplyclaim.Status.Phase == "Approved" || tfapplyclaim.Status.Phase == "Planned") && tfapplyclaim.Status.Action == "Apply" {
+
+		err = r.adjustPodCount(ctx, tfapplyclaim, false)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+
+		log.Info("15 seconds delay....")
+		time.Sleep(time.Second * 15)
+
+		err = r.getPodName(ctx, tfapplyclaim)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+
+		err = r.createClientSet(ctx, tfapplyclaim)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		// Get Commit ID
 		stdout.Reset()
 		stderr.Reset()
@@ -567,8 +572,6 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 			if !controllerutil.ContainsFinalizer(tfapplyclaim, "claim.tmax.io/terraform-protection") {
 				controllerutil.AddFinalizer(tfapplyclaim, "claim.tmax.io/terraform-protection")
 			}
-
-			_ = r.adjustPodCount(ctx, tfapplyclaim, true)
 		}
 	}
 	tfapplyclaim.Status.Action = ""
@@ -578,27 +581,25 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 // Spec Update: destroy - true (This fuction is triggered by all users)
 func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start DestroyClaim")
-
-	err = r.adjustPodCount(ctx, tfapplyclaim, false)
-	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	}
-
-	log.Info("15 seconds delay....")
-	time.Sleep(time.Second * 15)
-
-	err = r.getPodName(ctx, tfapplyclaim)
-	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	}
-
-	err = r.createClientSet(ctx, tfapplyclaim)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// 5. Terraform Destroy (if required)
 	if tfapplyclaim.Status.Phase == "Applied" && tfapplyclaim.Spec.Destroy == true {
+		err = r.adjustPodCount(ctx, tfapplyclaim, false)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+
+		log.Info("15 seconds delay....")
+		time.Sleep(time.Second * 15)
+
+		err = r.getPodName(ctx, tfapplyclaim)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+
+		err = r.createClientSet(ctx, tfapplyclaim)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 
 		stdout.Reset()
 		stderr.Reset()
@@ -785,8 +786,6 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 
 			// Remove finalizer if there is no need to maintain this resource
 			controllerutil.RemoveFinalizer(tfapplyclaim, "claim.tmax.io/terraform-protection")
-
-			_ = r.adjustPodCount(ctx, tfapplyclaim, true)
 		}
 	}
 	tfapplyclaim.Status.Action = ""
@@ -989,8 +988,6 @@ func (r *TFApplyClaimReconciler) adjustPodCount(ctx context.Context, tfapplyclai
 			log.Error(err, "Failed to update Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
 			return err
 		}
-		// Spec updated - return and requeue
-		return nil
 	}
 
 	return nil
