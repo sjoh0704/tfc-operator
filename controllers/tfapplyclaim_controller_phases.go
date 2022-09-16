@@ -181,48 +181,20 @@ func (r *TFApplyClaimReconciler) ReadyClaim(ctx context.Context, tfapplyclaim *c
 	return ctrl.Result{}, nil
 }
 
+// Status Update: action - approve/reject
 func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start ApproveClaim")
 
-	// Check if the deployment already exists, if not create a new one
-	found := &appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: tfapplyclaim.Name, Namespace: tfapplyclaim.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		// Define a new deployment
-		dep := r.deploymentForApply(tfapplyclaim)
-		log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-		err = r.Create(ctx, dep)
-		if err != nil {
-			log.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-			return ctrl.Result{}, err
-		}
-		// Deployment created successfully - return and requeue
-		return ctrl.Result{Requeue: true}, nil
-	} else if err != nil {
-		log.Error(err, "Failed to get Deployment")
-		return ctrl.Result{}, err
+	if tfapplyclaim.Status.Action == "Reject" {
+		log.Info("This Claim is Rejected...")
+		statusUpdate(tfapplyclaim, Status{
+			PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
+			Phase:    OptionalString{"Rejected", true}})
 	}
 
-	// Ensure the deployment size is the same as the spec
-	size := int32(1)
-	if (tfapplyclaim.Status.Phase == "Applied" || tfapplyclaim.Status.Phase == "Destroyed" || tfapplyclaim.Status.Phase == "Rejected") && tfapplyclaim.Spec.Destroy == false {
-		size = 0
-	}
-	if *found.Spec.Replicas != size {
-		found.Spec.Replicas = &size
-		err = r.Update(ctx, found)
-		if err != nil {
-			log.Error(err, "Failed to update Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
-			return ctrl.Result{}, err
-		}
-		// Spec updated - return and requeue
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	if size == 0 {
-		log.Info("There's no need to Create Terraform Pod...")
-		tfapplyclaim.Status.Action = ""
-		return ctrl.Result{}, nil
+	err = r.adjustPodCount(ctx, tfapplyclaim, false)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	}
 
 	log.Info("15 seconds delay....")
@@ -325,8 +297,14 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 	return ctrl.Result{}, nil
 }
 
+// Status Update: action - plan
 func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start PlanClaim")
+
+	err = r.adjustPodCount(ctx, tfapplyclaim, false)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+	}
 
 	log.Info("15 seconds delay....")
 	time.Sleep(time.Second * 15)
@@ -457,8 +435,14 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 	return ctrl.Result{}, nil
 }
 
+// Status Update: action - apply
 func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start ApplyClaim")
+
+	err = r.adjustPodCount(ctx, tfapplyclaim, false)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+	}
 
 	log.Info("15 seconds delay....")
 	time.Sleep(time.Second * 15)
@@ -584,14 +568,21 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 				controllerutil.AddFinalizer(tfapplyclaim, "claim.tmax.io/terraform-protection")
 			}
 
+			_ = r.adjustPodCount(ctx, tfapplyclaim, true)
 		}
 	}
 	tfapplyclaim.Status.Action = ""
 	return ctrl.Result{}, nil
 }
 
+// Spec Update: destroy - true (This fuction is triggered by all users)
 func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start DestroyClaim")
+
+	err = r.adjustPodCount(ctx, tfapplyclaim, false)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+	}
 
 	log.Info("15 seconds delay....")
 	time.Sleep(time.Second * 15)
@@ -791,7 +782,11 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 			tfapplyclaim.Status.Resource.Deleted = destroyed
 
 			tfapplyclaim.Spec.Destroy = false
+
+			// Remove finalizer if there is no need to maintain this resource
 			controllerutil.RemoveFinalizer(tfapplyclaim, "claim.tmax.io/terraform-protection")
+
+			_ = r.adjustPodCount(ctx, tfapplyclaim, true)
 		}
 	}
 	tfapplyclaim.Status.Action = ""
@@ -954,6 +949,48 @@ func (r *TFApplyClaimReconciler) createClientSet(ctx context.Context, tfapplycla
 			Action:   OptionalString{"", true},
 			Reason:   OptionalString{"Failed to create clientset", true}})
 		return err
+	}
+
+	return nil
+}
+
+// adjustPodCount adjusts the count of Terraform Working Pods. If there is no need to create pods, it closes the pods.
+func (r *TFApplyClaimReconciler) adjustPodCount(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim, terminate bool) error {
+	// Check if the deployment already exists, if not create a new one
+	found := &appsv1.Deployment{}
+	err := r.Get(ctx, types.NamespacedName{Name: tfapplyclaim.Name, Namespace: tfapplyclaim.Namespace}, found)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new deployment
+		dep := r.deploymentForApply(tfapplyclaim)
+		log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+		err = r.Create(ctx, dep)
+		if err != nil {
+			log.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+			return err
+		}
+		// Deployment created successfully - return and requeue
+		return fmt.Errorf("Deployment created successfully - Requeue")
+	} else if err != nil {
+		log.Error(err, "Failed to get Deployment")
+		return err
+	}
+
+	// Ensure the deployment size is the same as the spec
+	size := int32(1)
+
+	if terminate == true {
+		log.Info("There's no need to Create Terraform Pod...")
+		size = 0
+	}
+	if *found.Spec.Replicas != size {
+		found.Spec.Replicas = &size
+		err = r.Update(ctx, found)
+		if err != nil {
+			log.Error(err, "Failed to update Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
+			return err
+		}
+		// Spec updated - return and requeue
+		return fmt.Errorf("Spec updated - Requeue")
 	}
 
 	return nil
