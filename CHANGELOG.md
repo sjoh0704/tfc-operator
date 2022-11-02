@@ -1,6 +1,24 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.34.0 start -------------------->
+
+## tfc-operator_5.0.34.0 (2022. 11. 02. (수) 16:20:07 KST)
+
+### Added
+
+### Changed
+  - [mod] 기본 setting 수정 by sjoh0704
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+  - [etc] Kubernetes API Call 테스트 스크립트 작성 by gyeongyeol-choi
+
+<!--------------------- v5.0.34.0 end --------------------->
+
 <!-------------------- v5.0.29.0 start -------------------->
 
 ## tfc-operator_5.0.29.0 (2022. 07. 12. (화) 13:25:21 KST)
