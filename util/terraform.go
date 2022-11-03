@@ -35,15 +35,26 @@ func ExecClone(client kubernetes.Interface, config *restclient.Config, podName s
 
 	url := strings.TrimLeft(apply.Spec.URL, protocol)
 
-	if apply.Spec.Type == "private" {
-		url = protocol + "$GIT_TOKEN:x-oauth-basic" + "@" + url
+	cmd := ""
+	//github인 경우와 gitlab인 경우 token url 순서가 다름
+	if strings.Contains(apply.Spec.URL, "github") {
+		if apply.Spec.Type == "private" {
+			url = protocol + "$GIT_TOKEN:x-oauth-basic" + "@" + url
+		} else {
+			url = protocol + "TMP_TOKEN:x-oauth-basic" + "@" + url
+		}
+		rep_token := "GIT_TOKEN=$(echo $GIT_TOKEN | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
+		cmd = rep_token + "git clone " + url + " " + HCL_DIR
+
 	} else {
-		url = protocol + "TMP_TOKEN:x-oauth-basic" + "@" + url
+		if apply.Spec.Type == "private" {
+			url = protocol + "x-oauth-basic:$GIT_TOKEN" + "@" + url
+		} else {
+			url = protocol + "x-oauth-basic:TMP_TOKEN" + "@" + url
+		}
+		cmd = "git clone " + url + " " + HCL_DIR
+
 	}
-
-	rep_token := "GIT_TOKEN=$(echo $GIT_TOKEN | sed -e 's/\\!/%21/g' -e 's/\\#/%23/g' -e 's/\\$/%24/g' -e 's/\\&/%26/g' -e \"s/'/%27/g\" -e 's/(/%28/g' -e 's/)/%29/g' -e 's/\\*/%2A/g'  -e 's/\\+/%2B/g' -e 's/\\,/%2C/g' -e 's/\\//%2F/g' -e 's/\\:/%3A/g' -e 's/\\;/%3B/g' -e 's/\\=/%3D/g' -e 's/\\?/%3F/g' -e 's/\\@/%40/g' -e 's/\\[/%5B/g'  -e 's/\\]/%5D/g');"
-
-	cmd := rep_token + "git clone " + url + " " + HCL_DIR
 
 	// SSL 미인증 VCS (e.g. Gitlab)을 위한 로직 처리
 	cmd = "git config --global http.sslVerify false;" + cmd
