@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.34.1 start -------------------->
+
+## tfc-operator_5.0.34.1 (2022. 11. 03. (목) 21:17:47 KST)
+
+### Added
+  - [feat] git clone시 gitlab, github 분기로직 추가 by sjoh0704
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.34.1 end --------------------->
+
 <!-------------------- v5.0.34.0 start -------------------->
 
 ## tfc-operator_5.0.34.0 (2022. 11. 02. (수) 16:20:07 KST)
