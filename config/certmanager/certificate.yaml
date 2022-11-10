@@ -2,15 +2,8 @@
 # More document can be found at https://docs.cert-manager.io
 # WARNING: Targets CertManager 0.11 check https://docs.cert-manager.io/en/latest/tasks/upgrading/index.html for 
 # breaking changes
-apiVersion: cert-manager.io/v1alpha2
-kind: Issuer
-metadata:
-  name: selfsigned-issuer
-  namespace: system
-spec:
-  selfSigned: {}
----
-apiVersion: cert-manager.io/v1alpha2
+
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
@@ -20,7 +13,14 @@ spec:
   dnsNames:
   - $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc
   - $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc.cluster.local
+  isCA: false
   issuerRef:
-    kind: Issuer
-    name: selfsigned-issuer
-  secretName: webhook-server-cert # this secret will not be prefixed, since it's not managed by kustomize
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: tmaxcloud-issuer
+  secretName: tfc-operator-webhook-server-cert # this secret will not be prefixed, since it's not managed by kustomize
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth

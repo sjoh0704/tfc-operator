@@ -95,6 +95,10 @@ type Resource struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:path=tfapplyclaims,shortName=tfc,scope=Namespaced
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // TFApplyClaim is the Schema for the tfapplyclaims API
 type TFApplyClaim struct {

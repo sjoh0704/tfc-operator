@@ -7,6 +7,21 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - secrets
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - post
+  - update
+  - watch
+- apiGroups:
   - apps
   resources:
   - deployments
