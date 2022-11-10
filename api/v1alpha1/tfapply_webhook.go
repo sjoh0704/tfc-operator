@@ -53,8 +53,9 @@ func (r *TFApplyClaim) ValidateCreate() error {
 	TFApplyClaimWebhookLogger.Info("validate create", "name", r.Name)
 
 	if r.Spec.Destroy {
-		return errors.New("only can use destroy value as false")
+		return errors.New("Cannot set spec.destroy as TRUE when create TFApplyClaim at first")
 	}
+
 	return nil
 }
 

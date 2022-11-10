@@ -793,10 +793,13 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 }
 
 // deploymentForProvider returns a provider Deployment object
-func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClaim) *appsv1.Deployment {
+func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClaim) (*appsv1.Deployment, error) {
 	ls := labelsForApply(m.Name)
 	replicas := int32(1) //m.Spec.Size
 	image_path := os.Getenv("TFC_WORKER")
+	if image_path == "" {
+		return nil, fmt.Errorf("TFC_WORKER environment variable doesn't exist")
+	}
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -871,7 +874,7 @@ func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClai
 	}
 	// Set Provider instance as the owner and controller
 	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep
+	return dep, nil
 }
 
 // labelsForProvider returns the labels for selecting the resources
@@ -960,7 +963,12 @@ func (r *TFApplyClaimReconciler) adjustPodCount(ctx context.Context, tfapplyclai
 	err := r.Get(ctx, types.NamespacedName{Name: tfapplyclaim.Name, Namespace: tfapplyclaim.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new deployment
-		dep := r.deploymentForApply(tfapplyclaim)
+		dep, err := r.deploymentForApply(tfapplyclaim)
+		if err != nil {
+			log.Error(err, "Failed to create deployment")
+			return err
+		}
+
 		log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
 		err = r.Create(ctx, dep)
 		if err != nil {
