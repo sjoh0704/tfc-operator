@@ -1,6 +1,25 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.35.0 start -------------------->
+
+## tfc-operator_5.0.35.0 (2022. 11. 11. (금) 11:30:55 KST)
+
+### Added
+  - [feat] applied 상태에서 tfapplyclaim을 지우지 못하도록 웹훅 추가 by sjoh0704
+  - [feat] TFC_WORKER 환경변수 check logic 추가, crd description 수정 by sjoh0704
+  - [feat] 웹훅 추가, printcolumn 추가, shorts 추가 by sjoh0704
+
+### Changed
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.35.0 end --------------------->
+
 <!-------------------- v5.0.34.1 start -------------------->
 
 ## tfc-operator_5.0.34.1 (2022. 11. 03. (목) 21:17:47 KST)
