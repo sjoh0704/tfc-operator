@@ -40,7 +40,7 @@ var _ webhook.Defaulter = &TFApplyClaim{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *TFApplyClaim) Default() {
-	TFApplyClaimWebhookLogger.Info("default", "name", r.Name)
+	TFApplyClaimWebhookLogger.Info("default", "name", r.Name, "namespace", r.Namespace)
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -50,7 +50,7 @@ var _ webhook.Validator = &TFApplyClaim{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *TFApplyClaim) ValidateCreate() error {
-	TFApplyClaimWebhookLogger.Info("validate create", "name", r.Name)
+	TFApplyClaimWebhookLogger.Info("validate create", "name", r.Name, "namespace", r.Namespace)
 
 	if r.Spec.Destroy {
 		return errors.New("Cannot set spec.destroy as TRUE when create TFApplyClaim at first")
@@ -61,17 +61,18 @@ func (r *TFApplyClaim) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *TFApplyClaim) ValidateUpdate(old runtime.Object) error {
-	TFApplyClaimWebhookLogger.Info("validate update", "name", r.Name)
-
-	if !r.ObjectMeta.DeletionTimestamp.IsZero() {
-		return nil
-	}
-
+	TFApplyClaimWebhookLogger.Info("validate update", "name", r.Name, "namespace", r.Namespace)
 	return nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *TFApplyClaim) ValidateDelete() error {
-	TFApplyClaimWebhookLogger.Info("validate delete", "name", r.Name)
+	TFApplyClaimWebhookLogger.Info("validate delete", "name", r.Name, "namespace", r.Namespace)
+
+	// 프로비저닝된 상태에서 tfapplyclaim 삭제 요청시 금지
+	if r.Status.Phase == "Applied" {
+		return errors.New("Destroying action must precede deleting tfapplyclaim resource")
+	}
+
 	return nil
 }

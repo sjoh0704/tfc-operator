@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: 192.168.9.12:5000/tfc-operator
-  newTag: test13
+  newTag: va3
