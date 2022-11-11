@@ -74,7 +74,13 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "TFApplyClaim")
 		os.Exit(1)
+
 	}
+	if err = (&claimv1alpha1.TFApplyClaim{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "TFApplyClaim")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

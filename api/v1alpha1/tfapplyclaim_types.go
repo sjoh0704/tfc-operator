@@ -28,22 +28,24 @@ type TFApplyClaimSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// +kubebuilder:validation:Enum:=public;private
 	// +kubebuilder:validation:Required
-	// Git Repoistory Type (Public, Private)
+	// Git Repoistory Type (public, private)
 	Type string `json:"type"`
 	// +kubebuilder:validation:Required
-	// Terraform CLI Version
+	// Terraform CLI Version. Example: 0.12.3
 	Version string `json:"version"`
 	// +kubebuilder:validation:Required
 	// Git URL (HCL Code)
 	URL string `json:"url"`
+	// +kubebuilder:validation:Required
 	// Git Branch
 	Branch string `json:"branch,omitempty"`
 	// Secret Name for Git Credential
 	Secret string `json:"secret,omitempty"`
 	// Whether to perform "terraform destory"
 	Destroy bool `json:"destroy,omitempty"`
-	// Terraform Variable
+	// Terraform Variable. Example: { "AWS_ACCESS_KEY_ID" : "aws-access-key", "AWS_SECRET_ACCESS_KEY" : "aws-secret-access-key" }
 	Variable string `json:"variable,omitempty"`
 }
 
@@ -95,6 +97,10 @@ type Resource struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:path=tfapplyclaims,shortName=tfc,scope=Namespaced
+// +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // TFApplyClaim is the Schema for the tfapplyclaims API
 type TFApplyClaim struct {

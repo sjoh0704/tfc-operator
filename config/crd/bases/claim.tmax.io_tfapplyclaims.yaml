@@ -13,10 +13,22 @@ spec:
     kind: TFApplyClaim
     listKind: TFApplyClaimList
     plural: tfapplyclaims
+    shortNames:
+    - tfc
     singular: tfapplyclaim
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .status.phase
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: TFApplyClaim is the Schema for the tfapplyclaims API
@@ -46,16 +58,21 @@ spec:
                 description: Secret Name for Git Credential
                 type: string
               type:
-                description: Git Repoistory Type (Public, Private)
+                description: Git Repoistory Type (public, private)
+                enum:
+                - public
+                - private
                 type: string
               url:
                 description: Git URL (HCL Code)
                 type: string
               variable:
-                description: Terraform Variable
+                description: 'Terraform Variable. Example: { "AWS_ACCESS_KEY_ID" :
+                  "aws-access-key", "AWS_SECRET_ACCESS_KEY" : "aws-secret-access-key"
+                  }'
                 type: string
               version:
-                description: Terraform CLI Version
+                description: 'Terraform CLI Version. Example: 0.12.3'
                 type: string
             required:
             - type
