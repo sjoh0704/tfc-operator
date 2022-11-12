@@ -56,12 +56,22 @@ func (r *TFApplyClaim) ValidateCreate() error {
 		return errors.New("Cannot set spec.destroy as TRUE when create TFApplyClaim at first")
 	}
 
+	if r.Spec.Type == "private" && r.Spec.Secret == "" {
+		return errors.New("In order to use the private type, need to fill out the secret name in your namespace.")
+	}
+
 	return nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *TFApplyClaim) ValidateUpdate(old runtime.Object) error {
-	TFApplyClaimWebhookLogger.Info("validate update", "name", r.Name, "namespace", r.Namespace)
+	// TFApplyClaimWebhookLogger.Info("validate update", "name", r.Name, "namespace", r.Namespace)
+
+	oldTfc := old.(*TFApplyClaim).DeepCopy()
+	if oldTfc.Status.Phase == "Error" {
+		return errors.New("Cannot change it when it is an error phase.")
+	}
+
 	return nil
 }
 

@@ -18,6 +18,11 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+)
+
+const (
+	TFApplyClaimFinalizer = "tfapplyclaim.claim.tmax.io/finalizer"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -45,7 +50,7 @@ type TFApplyClaimSpec struct {
 	Secret string `json:"secret,omitempty"`
 	// Whether to perform "terraform destory"
 	Destroy bool `json:"destroy,omitempty"`
-	// Terraform Variable. Example: { "AWS_ACCESS_KEY_ID" : "aws-access-key", "AWS_SECRET_ACCESS_KEY" : "aws-secret-access-key" }
+	// Terraform Variable. Example: AWS_ACCESS_KEY_ID=aws-access-key, AWS_SECRET_ACCESS_KEY=aws-secret-access-key
 	Variable string `json:"variable,omitempty"`
 }
 
@@ -99,7 +104,7 @@ type Resource struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=tfapplyclaims,shortName=tfc,scope=Namespaced
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // TFApplyClaim is the Schema for the tfapplyclaims API
@@ -122,4 +127,11 @@ type TFApplyClaimList struct {
 
 func init() {
 	SchemeBuilder.Register(&TFApplyClaim{}, &TFApplyClaimList{})
+}
+
+func (t *TFApplyClaim) GetNamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      t.Name,
+		Namespace: t.Namespace,
+	}
 }

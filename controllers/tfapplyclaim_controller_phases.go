@@ -17,130 +17,48 @@ limitations under the License.
 package controllers
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
 	"context"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/admpub/log"
-	"github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 	claimv1alpha1 "github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 	"github.com/tmax-cloud/tfc-operator/util"
-
-	"os"
 )
 
-var capacity int = 5
-var commitID string
+func (r *TFApplyClaimReconciler) ReadyClaimPhase(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 
-func statusUpdate(t *claimv1alpha1.TFApplyClaim, update Status) {
-	if update.Action.Set {
-		t.Status.Action = update.Action.Value
-	}
-	if update.Apply.Set {
-		t.Status.Apply = update.Apply.Value
-	}
-	if update.Branch.Set {
-		t.Status.Branch = update.Branch.Value
-	}
-	if update.Commit.Set {
-		t.Status.Commit = update.Commit.Value
-	}
-	if update.Destroy.Set {
-		t.Status.Destroy = update.Destroy.Value
-	}
-	if update.Phase.Set {
-		t.Status.Phase = update.Phase.Value
-	}
-	if update.PrePhase.Set {
-		t.Status.PrePhase = update.PrePhase.Value
-	}
-	if update.Reason.Set {
-		t.Status.Reason = update.Reason.Value
-	}
-	if update.State.Set {
-		t.Status.State = update.State.Value
-	}
-	if update.URL.Set {
-		t.Status.URL = update.URL.Value
-	}
+	log := r.Log.WithValues("tfapplyclaim", tfapplyclaim.GetNamespacedName())
 
-}
-
-type Status struct {
-	Action   OptionalString
-	Apply    OptionalString
-	Branch   OptionalString
-	Commit   OptionalString
-	Destroy  OptionalString
-	Phase    OptionalString
-	PrePhase OptionalString
-	Reason   OptionalString
-	State    OptionalString
-	URL      OptionalString
-}
-type OptionalInt struct {
-	Value int
-	//Null  bool
-	Set bool
-}
-type OptionalString struct {
-	Value string
-	//Null  bool
-	Set bool
-}
-
-/* Pod Exec Logs (Output / Error) */
-var stdout bytes.Buffer
-var stderr bytes.Buffer
-
-/* Clientset for Kubernetes */
-var clientset *kubernetes.Clientset
-
-/* Terraform Pods List */
-var podNames []string
-
-/* Kubernetes Config (.config) */
-var config *rest.Config
-
-var err error
-
-func (r *TFApplyClaimReconciler) ReadyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
 	log.Info("Start ReadyClaim")
 
 	repoType := tfapplyclaim.Spec.Type
 	secretName := tfapplyclaim.Spec.Secret
-
 	secret := &corev1.Secret{}
 
 	// Check the Secret (Git Credential) for Terraform HCL Code
+
+	key := types.NamespacedName{Name: secretName, Namespace: tfapplyclaim.Namespace}
+
 	if repoType == "private" {
-		if secretName == "" {
+		if err := r.Get(ctx, key, secret); errors.IsNotFound(err) {
+			log.Error(err, "Credential secret doesn't exist")
 			statusUpdate(tfapplyclaim, Status{
 				PrePhase: OptionalString{"", true},
 				Phase:    OptionalString{"Error", true},
 				Action:   OptionalString{"", true},
-				Reason:   OptionalString{"Secret (git credential) is Needed", true}})
-			return ctrl.Result{}, nil
-		}
-
-		err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: tfapplyclaim.Namespace}, secret)
-		if err != nil {
+				Reason:   OptionalString{"Credential secret doesn't exist", true}})
+			return ctrl.Result{}, err
+		} else if err != nil {
 			// Error reading the object - requeue the request.
 			log.Error(err, "Failed to get Secret")
 			statusUpdate(tfapplyclaim, Status{
@@ -161,14 +79,6 @@ func (r *TFApplyClaimReconciler) ReadyClaim(ctx context.Context, tfapplyclaim *c
 				Reason:   OptionalString{"Invalid Secret (token)", true}})
 			return ctrl.Result{}, err
 		}
-
-		if tfapplyclaim.Status.Phase == "Error" && (tfapplyclaim.Status.Reason == "Secret (git credential) is Needed" ||
-			tfapplyclaim.Status.Reason == "Failed to get Secret" || tfapplyclaim.Status.Reason == "Invalid Secret (token)") {
-			statusUpdate(tfapplyclaim, Status{
-				PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-				Phase:    OptionalString{"Awaiting", true},
-				Reason:   OptionalString{"", true}})
-		}
 	}
 
 	if tfapplyclaim.Status.Phase == "" {
@@ -178,35 +88,37 @@ func (r *TFApplyClaimReconciler) ReadyClaim(ctx context.Context, tfapplyclaim *c
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// If done Apply / Destroy, terraform pods is terminated.
-	if tfapplyclaim.Status.Phase == "Applied" || tfapplyclaim.Status.Phase == "Destroyed" && tfapplyclaim.Spec.Destroy == false {
-		_ = r.adjustPodCount(ctx, tfapplyclaim, true)
-	}
+	// // If done Apply / Destroy, terraform pods is terminated.
+	// if tfapplyclaim.Status.Phase == "Applied" || tfapplyclaim.Status.Phase == "Destroyed" && tfapplyclaim.Spec.Destroy == false {
+	// 	_ = r.adjustPodCount(ctx, tfapplyclaim, true)
+	// }
 
 	return ctrl.Result{}, nil
 }
 
-// Status Update: action - approve/reject
-func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
-	log.Info("Start ApproveClaim")
+// Status Update: action - reject
+func (r *TFApplyClaimReconciler) RejectClaimPhase(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+	log := r.Log.WithValues("tfapplyclaim", tfapplyclaim.GetNamespacedName())
+	log.Info("Start RejectClaim")
+	statusUpdate(tfapplyclaim, Status{
+		PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
+		Phase:    OptionalString{"Rejected", true}})
+	return ctrl.Result{}, nil
+}
 
-	if tfapplyclaim.Status.Action == "Reject" {
-		log.Info("This Claim is Rejected...")
-		statusUpdate(tfapplyclaim, Status{
-			PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-			Phase:    OptionalString{"Rejected", true}})
-	}
+// Status Update: action - approve
+func (r *TFApplyClaimReconciler) ApproveClaimPhase(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+	log := r.Log.WithValues("tfapplyclaim", tfapplyclaim.GetNamespacedName())
+	log.Info("Start ApproveClaim")
 
 	err = r.adjustPodCount(ctx, tfapplyclaim, false)
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	}
 
-	log.Info("15 seconds delay....")
-	time.Sleep(time.Second * 15)
-
 	err = r.getPodName(ctx, tfapplyclaim)
 	if err != nil {
+		log.Info("Waiting for pod to be created. requeue after 5 sec")
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	}
 
@@ -216,7 +128,7 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 	}
 
 	// Go Client - POD EXEC
-	if tfapplyclaim.Status.Phase == "Awaiting" && tfapplyclaim.Status.Action == "Approve" {
+	if tfapplyclaim.Status.Action == "Approve" && (tfapplyclaim.Status.Phase == "Awaiting" || tfapplyclaim.Status.Phase == "Rejected") {
 
 		// 1. Git Clone Repository
 		stdout.Reset()
@@ -303,7 +215,8 @@ func (r *TFApplyClaimReconciler) ApproveClaim(ctx context.Context, tfapplyclaim 
 }
 
 // Status Update: action - plan
-func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+func (r *TFApplyClaimReconciler) PlanClaimPhase(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+	log := r.Log.WithValues("tfapplyclaim", tfapplyclaim.GetNamespacedName())
 	log.Info("Start PlanClaim")
 
 	// 3. Terraform Plan
@@ -313,8 +226,10 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
 
-		log.Info("15 seconds delay....")
-		time.Sleep(time.Second * 15)
+		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil{
+			log.Error(err, "Wait for deployment to be available")
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
 
 		err = r.getPodName(ctx, tfapplyclaim)
 		if err != nil {
@@ -380,26 +295,6 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 			return ctrl.Result{}, err
 		}
 
-		if tfapplyclaim.Spec.Variable != "" {
-			stdout.Reset()
-			stderr.Reset()
-
-			err = util.ExecCreateVariables(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
-
-			fmt.Println(stdout.String())
-			fmt.Println(stderr.String())
-
-			if err != nil {
-				log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
-				statusUpdate(tfapplyclaim, Status{
-					PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-					Phase:    OptionalString{"Error", true},
-					Action:   OptionalString{"", true},
-					Reason:   OptionalString{"Failed to Create Variable Definitions (.tfvars) Files", true}})
-				return ctrl.Result{}, err
-			}
-		}
-
 		stdout.Reset()
 		stderr.Reset()
 
@@ -441,7 +336,8 @@ func (r *TFApplyClaimReconciler) PlanClaim(ctx context.Context, tfapplyclaim *cl
 }
 
 // Status Update: action - apply
-func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+func (r *TFApplyClaimReconciler) ApplyClaimPhase(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+	log := r.Log.WithValues("tfapplyclaim", tfapplyclaim.GetNamespacedName())
 	log.Info("Start ApplyClaim")
 	// 4. Terraform Apply
 	if (tfapplyclaim.Status.Phase == "Approved" || tfapplyclaim.Status.Phase == "Planned") && tfapplyclaim.Status.Action == "Apply" {
@@ -451,8 +347,10 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
 
-		log.Info("15 seconds delay....")
-		time.Sleep(time.Second * 15)
+		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil{
+			log.Error(err, "Wait for deployment to be available")
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
 
 		err = r.getPodName(ctx, tfapplyclaim)
 		if err != nil {
@@ -484,26 +382,6 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 				Commit: OptionalString{strings.TrimRight(stdout.String(), "\r\n"), true},
 				URL:    OptionalString{tfapplyclaim.Spec.URL, true},
 				Branch: OptionalString{tfapplyclaim.Spec.Branch, true}})
-		}
-
-		if tfapplyclaim.Spec.Variable != "" {
-			stdout.Reset()
-			stderr.Reset()
-
-			err = util.ExecCreateVariables(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
-
-			fmt.Println(stdout.String())
-			fmt.Println(stderr.String())
-
-			if err != nil {
-				log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
-				statusUpdate(tfapplyclaim, Status{
-					PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-					Phase:    OptionalString{"Error", true},
-					Action:   OptionalString{"", true},
-					Reason:   OptionalString{"Failed to Create Variable Definitions (.tfvars) Files", true}})
-				return ctrl.Result{}, err
-			}
 		}
 
 		stdout.Reset()
@@ -579,7 +457,8 @@ func (r *TFApplyClaimReconciler) ApplyClaim(ctx context.Context, tfapplyclaim *c
 }
 
 // Spec Update: destroy - true (This fuction is triggered by all users)
-func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+func (r *TFApplyClaimReconciler) DestroyClaimPhase(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+	log := r.Log.WithValues("tfapplyclaim", tfapplyclaim.GetNamespacedName())
 	log.Info("Start DestroyClaim")
 	// 5. Terraform Destroy (if required)
 	if tfapplyclaim.Status.Phase == "Applied" && tfapplyclaim.Spec.Destroy == true {
@@ -588,8 +467,10 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
 
-		log.Info("15 seconds delay....")
-		time.Sleep(time.Second * 15)
+		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil{
+			log.Error(err, "Wait for deployment to be available")
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
 
 		err = r.getPodName(ctx, tfapplyclaim)
 		if err != nil {
@@ -705,25 +586,6 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 			return ctrl.Result{}, err
 		}
 
-		if tfapplyclaim.Spec.Variable != "" {
-			stdout.Reset()
-			stderr.Reset()
-
-			err = util.ExecCreateVariables(clientset, config, podNames[0], tfapplyclaim.Namespace, nil, &stdout, &stderr, tfapplyclaim)
-			fmt.Println(stdout.String())
-			fmt.Println(stderr.String())
-
-			if err != nil {
-				log.Error(err, "Failed to Create Variable Definitions (.tfvars) Files")
-				statusUpdate(tfapplyclaim, Status{
-					PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-					Phase:    OptionalString{"Error", true},
-					Action:   OptionalString{"", true},
-					Reason:   OptionalString{"Failed to Create Variable Definitions (.tfvars) Files", true}})
-				return ctrl.Result{}, err
-			}
-		}
-
 		stdout.Reset()
 		stderr.Reset()
 
@@ -790,213 +652,4 @@ func (r *TFApplyClaimReconciler) DestroyClaim(ctx context.Context, tfapplyclaim 
 	}
 	tfapplyclaim.Status.Action = ""
 	return ctrl.Result{}, nil
-}
-
-// deploymentForProvider returns a provider Deployment object
-func (r *TFApplyClaimReconciler) deploymentForApply(m *claimv1alpha1.TFApplyClaim) (*appsv1.Deployment, error) {
-	ls := labelsForApply(m.Name)
-	replicas := int32(1) //m.Spec.Size
-	image_path := os.Getenv("TFC_WORKER")
-	if image_path == "" {
-		return nil, fmt.Errorf("TFC_WORKER environment variable doesn't exist")
-	}
-
-	dep := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.Name,
-			Namespace: m.Namespace,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: ls,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: ls,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						Image:           image_path, //"tmaxcloudck/tfc-worker:v0.0.1",
-						Name:            "ubuntu",
-						Command:         []string{"/bin/sleep", "3650d"},
-						ImagePullPolicy: "Always",
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: 11211,
-							Name:          "ubuntu",
-						}},
-					}},
-				},
-			},
-		},
-	}
-	if m.Spec.Type == "private" {
-		dep = &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      m.Name,
-				Namespace: m.Namespace,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Replicas: &replicas,
-				Selector: &metav1.LabelSelector{
-					MatchLabels: ls,
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: ls,
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{{
-							Image:           image_path, //"tmaxcloudck/tfc-worker:v0.0.1",
-							Name:            "ubuntu",
-							Command:         []string{"/bin/sleep", "3650d"},
-							ImagePullPolicy: "Always",
-							Ports: []corev1.ContainerPort{{
-								ContainerPort: 11211,
-								Name:          "ubuntu",
-							}},
-							Env: []corev1.EnvVar{
-								{
-									Name: "GIT_TOKEN",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{Name: m.Spec.Secret},
-											Key:                  "token",
-										},
-									},
-								},
-							},
-						}},
-					},
-				},
-			},
-		}
-	}
-	// Set Provider instance as the owner and controller
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep, nil
-}
-
-// labelsForProvider returns the labels for selecting the resources
-// belonging to the given Provider CR name.
-func labelsForApply(name string) map[string]string {
-	return map[string]string{"app": "tfapplyclaim", "tfapplyclaim_cr": name}
-}
-
-// getPodNames returns the pod names of the array of pods passed in
-func getPodNames(pods []corev1.Pod) []string {
-	var podNames []string
-	for _, pod := range pods {
-		podNames = append(podNames, pod.Name)
-	}
-	return podNames
-}
-
-func dequeuePlan(slice []v1alpha1.Plan, capacity int) []v1alpha1.Plan {
-	fmt.Println(slice[1:])
-	fmt.Println(slice[:capacity-1])
-	return slice[:capacity-1]
-}
-
-// getPodName defines the pod name of terraform pod
-func (r *TFApplyClaimReconciler) getPodName(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) error {
-	// Update the Provider status with the pod names
-	// List the pods for this provider's deployment
-	podList := &corev1.PodList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(tfapplyclaim.Namespace),
-		client.MatchingLabels(labelsForApply(tfapplyclaim.Name)),
-		client.MatchingFields{"status.phase": "Running"},
-	}
-	if err := r.List(ctx, podList, listOpts...); err != nil {
-		log.Error(err, "Failed to list pods", "TFApplyClaim.Namespace", tfapplyclaim.Namespace, "TFApplyClaim.Name", tfapplyclaim.Name)
-		return err
-	}
-	podNames = getPodNames(podList.Items)
-
-	if len(podNames) < 1 {
-		log.Info("Not yet create Terraform Pod...")
-		return fmt.Errorf("Not yet create Terraform Pod...")
-	} else if len(podNames) > 1 {
-		log.Info("Not yet terminate Previous Terraform Pod...")
-		return fmt.Errorf("Not yet terminate Previous Terraform Pod...")
-	} else {
-		log.Info("Ready to Execute Terraform Pod!")
-	}
-	return nil
-}
-
-// createClientSet initializes the ClientSet of Kubernetes by InClusterConfig
-func (r *TFApplyClaimReconciler) createClientSet(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) error {
-	// creates the in-cluster config
-	var err error
-
-	config, err = rest.InClusterConfig()
-	if err != nil {
-		log.Error(err, "Failed to create in-cluster config")
-		statusUpdate(tfapplyclaim, Status{
-			PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-			Phase:    OptionalString{"Error", true},
-			Action:   OptionalString{"", true},
-			Reason:   OptionalString{"Failed to create in-cluster config", true}})
-		return err
-	}
-	// creates the clientset
-	clientset, err = kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Error(err, "Failed to create clientset")
-		statusUpdate(tfapplyclaim, Status{
-			PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
-			Phase:    OptionalString{"Error", true},
-			Action:   OptionalString{"", true},
-			Reason:   OptionalString{"Failed to create clientset", true}})
-		return err
-	}
-
-	return nil
-}
-
-// adjustPodCount adjusts the count of Terraform Working Pods. If there is no need to create pods, it closes the pods.
-func (r *TFApplyClaimReconciler) adjustPodCount(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim, terminate bool) error {
-	// Check if the deployment already exists, if not create a new one
-	found := &appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: tfapplyclaim.Name, Namespace: tfapplyclaim.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		// Define a new deployment
-		dep, err := r.deploymentForApply(tfapplyclaim)
-		if err != nil {
-			log.Error(err, "Failed to create deployment")
-			return err
-		}
-
-		log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-		err = r.Create(ctx, dep)
-		if err != nil {
-			log.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-			return err
-		}
-		// Deployment created successfully - return and requeue
-		return fmt.Errorf("Deployment created successfully - Requeue")
-	} else if err != nil {
-		log.Error(err, "Failed to get Deployment")
-		return err
-	}
-
-	// Ensure the deployment size is the same as the spec
-	size := int32(1)
-
-	if terminate == true {
-		log.Info("There's no need to Create Terraform Pod...")
-		size = 0
-	}
-	if *found.Spec.Replicas != size {
-		found.Spec.Replicas = &size
-		err = r.Update(ctx, found)
-		if err != nil {
-			log.Error(err, "Failed to update Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
-			return err
-		}
-	}
-
-	return nil
 }

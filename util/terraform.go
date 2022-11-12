@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -148,24 +147,11 @@ func ExecGetCommitID(client kubernetes.Interface, config *restclient.Config, pod
 	return nil
 }
 
-func ExecCreateVariables(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
-	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
-
-	cmd := "cd " + HCL_DIR + ";" + "cat > terraform.tfvars.json << EOL\n" +
-		apply.Spec.Variable + "\nEOL"
-
-	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func ExecTerraformPlan(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
-	cmd := "cd " + HCL_DIR + ";" + "terraform plan"
+	variables := GetTerraformVariables(apply)
+	cmd := "cd " + HCL_DIR + ";" + variables + "terraform plan"
 	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
@@ -177,7 +163,8 @@ func ExecTerraformPlan(client kubernetes.Interface, config *restclient.Config, p
 func ExecTerraformApply(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
-	cmd := "cd " + HCL_DIR + ";" + "terraform apply -auto-approve"
+	variables := GetTerraformVariables(apply)
+	cmd := "cd " + HCL_DIR + ";" + variables + "terraform apply -auto-approve"
 	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
@@ -229,7 +216,8 @@ func ExecRecoverState(client kubernetes.Interface, config *restclient.Config, po
 func ExecTerraformDestroy(client kubernetes.Interface, config *restclient.Config, podName string, podNamespace string,
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
-	cmd := "cd " + HCL_DIR + ";" + "terraform destroy -auto-approve"
+	variables := GetTerraformVariables(apply)
+	cmd := "cd " + HCL_DIR + ";" + variables + "terraform destroy -auto-approve"
 	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
@@ -311,47 +299,6 @@ func ReadIDFromFile(filename string) (string, error) {
 	}
 
 	return id, nil
-}
-
-// Initialize Terraform Working Directory
-func InitTerraform_CLI(targetDir string, cloudType string) error {
-	// Select the Terraform Plugin (cloudType: AWS, Azure, GCP)
-	orgDir := HCL_DIR + "/" + ".terraform" + cloudType
-	dstDir := targetDir + "/" + ".terraform"
-
-	// Make the Destination Directory for plugin
-	if _, err := os.Stat(dstDir); os.IsNotExist(err) {
-		err = os.Mkdir(dstDir, 0755)
-		if err != nil {
-			return err
-		}
-		// Copy the Terraform Plugin (e.g. AWS, Azure, GCP) at Woring Directory
-		err = copy(orgDir, dstDir)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Execute Terraform (Apply / Destroy)
-func ExecuteTerraform_CLI(targetDir string, isDestroy bool) error {
-
-	// Provision the Resources by Terraform
-	cmd := exec.Command("bash", "-c", "terraform apply -auto-approve")
-
-	// Swith the command from "apply" to "destroy"
-	if isDestroy {
-		// Destroy the Reosource by Terraform
-		cmd = exec.Command("bash", "-c", "terraform destroy -auto-approve")
-	}
-
-	cmd.Dir = targetDir
-	stdoutStderr, err := cmd.CombinedOutput()
-
-	fmt.Printf("%s\n", stdoutStderr)
-
-	return err
 }
 
 // Copy a Dierectory (preserve directory structure)

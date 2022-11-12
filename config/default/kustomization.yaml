@@ -16,6 +16,7 @@ namePrefix: tfc-operator-
 bases:
 - ../crd
 - ../rbac
+# local 배포시 ../test-manager로 변경
 # - ../test-manager
 - ../manager
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
