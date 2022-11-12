@@ -19,6 +19,7 @@ package controllers
 import (
 	// appsv1 "k8s.io/api/apps/v1"
 
+	"reflect"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -125,7 +126,8 @@ func (r *TFApplyClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 						!newtfc.DeletionTimestamp.IsZero()
 					actionChanged := (newtfc.Status.Action != "") && (oldtfc.Status.Action != newtfc.Status.Action)
 					isDestroy := newtfc.Spec.Destroy
-					if isDelete || isFinalized || actionChanged || isDestroy {
+					specChanged := !reflect.DeepEqual(oldtfc.Spec, newtfc.Spec)
+					if isDelete || isFinalized || actionChanged || isDestroy || specChanged {
 						return true
 					}
 					return false

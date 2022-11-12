@@ -67,10 +67,10 @@ func (r *TFApplyClaim) ValidateCreate() error {
 func (r *TFApplyClaim) ValidateUpdate(old runtime.Object) error {
 	// TFApplyClaimWebhookLogger.Info("validate update", "name", r.Name, "namespace", r.Namespace)
 
-	oldTfc := old.(*TFApplyClaim).DeepCopy()
-	if oldTfc.Status.Phase == "Error" {
-		return errors.New("Cannot change it when it is an error phase.")
-	}
+	// oldTfc := old.(*TFApplyClaim).DeepCopy()
+	// if oldTfc.Status.Phase == "Error" {
+	// 	return errors.New("Cannot change it when it is an error phase.")
+	// }
 
 	return nil
 }

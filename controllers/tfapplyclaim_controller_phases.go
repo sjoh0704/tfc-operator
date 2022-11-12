@@ -57,7 +57,7 @@ func (r *TFApplyClaimReconciler) ReadyClaimPhase(ctx context.Context, tfapplycla
 				Phase:    OptionalString{"Error", true},
 				Action:   OptionalString{"", true},
 				Reason:   OptionalString{"Credential secret doesn't exist", true}})
-			return ctrl.Result{}, err
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		} else if err != nil {
 			// Error reading the object - requeue the request.
 			log.Error(err, "Failed to get Secret")
@@ -66,7 +66,7 @@ func (r *TFApplyClaimReconciler) ReadyClaimPhase(ctx context.Context, tfapplycla
 				Phase:    OptionalString{"Error", true},
 				Action:   OptionalString{"", true},
 				Reason:   OptionalString{"Failed to get Secret", true}})
-			return ctrl.Result{}, err
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
 
 		_, exists_token := secret.Data["token"]
@@ -77,7 +77,19 @@ func (r *TFApplyClaimReconciler) ReadyClaimPhase(ctx context.Context, tfapplycla
 				Phase:    OptionalString{"Error", true},
 				Action:   OptionalString{"", true},
 				Reason:   OptionalString{"Invalid Secret (token)", true}})
-			return ctrl.Result{}, err
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
+
+		// error 상태인 tfapplyclaim을 수정한 경우
+		if tfapplyclaim.Status.Phase == "Error" && (tfapplyclaim.Status.Reason == "Credential secret doesn't exist" ||
+			tfapplyclaim.Status.Reason == "Failed to get Secret" ||
+			tfapplyclaim.Status.Reason == "Invalid Secret (token)") {
+			statusUpdate(tfapplyclaim, Status{
+				PrePhase: OptionalString{"Error", true},
+				Phase:    OptionalString{"Awaiting", true},
+				Action:   OptionalString{"", true},
+				Reason:   OptionalString{"Changed to correct spec", true}})
+			return ctrl.Result{}, nil
 		}
 	}
 
@@ -85,7 +97,7 @@ func (r *TFApplyClaimReconciler) ReadyClaimPhase(ctx context.Context, tfapplycla
 		statusUpdate(tfapplyclaim, Status{
 			PrePhase: OptionalString{tfapplyclaim.Status.Phase, true},
 			Phase:    OptionalString{"Awaiting", true}})
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// // If done Apply / Destroy, terraform pods is terminated.
@@ -226,7 +238,7 @@ func (r *TFApplyClaimReconciler) PlanClaimPhase(ctx context.Context, tfapplyclai
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
 
-		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil{
+		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil {
 			log.Error(err, "Wait for deployment to be available")
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
@@ -347,7 +359,7 @@ func (r *TFApplyClaimReconciler) ApplyClaimPhase(ctx context.Context, tfapplycla
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
 
-		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil{
+		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil {
 			log.Error(err, "Wait for deployment to be available")
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
@@ -467,7 +479,7 @@ func (r *TFApplyClaimReconciler) DestroyClaimPhase(ctx context.Context, tfapplyc
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
 
-		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil{
+		if err := r.checkDeploymentAvailable(context.TODO(), tfapplyclaim); err != nil {
 			log.Error(err, "Wait for deployment to be available")
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
