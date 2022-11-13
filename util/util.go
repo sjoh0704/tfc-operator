@@ -29,16 +29,17 @@ func LowestNonZeroResult(i, j ctrl.Result) ctrl.Result {
 
 func GetTerraformVariables(tfapply *claimv1alpha1.TFApplyClaim) string {
 
+	// 변수 입력 확인 프롬프트 때문에 지연되는 것을 방지
+	cmd := " --input=false "
 	if tfapply.Spec.Variable == "" {
-		return ""
+		return cmd
 	}
 
 	variableList := strings.Split(tfapply.Spec.Variable, ",")
 
-	cmd := ""
 	for _, v := range variableList {
 		value := strings.Trim(v, " ")
-		cmd += fmt.Sprintf("export TF_VAR_%s; ", value)
+		cmd += fmt.Sprintf("-var=%s ", value)
 	}
 
 	return cmd

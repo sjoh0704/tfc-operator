@@ -151,7 +151,7 @@ func ExecTerraformPlan(client kubernetes.Interface, config *restclient.Config, p
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
 	variables := GetTerraformVariables(apply)
-	cmd := "cd " + HCL_DIR + ";" + variables + "terraform plan"
+	cmd := "cd " + HCL_DIR + ";" + "terraform plan" + variables
 	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
@@ -164,7 +164,7 @@ func ExecTerraformApply(client kubernetes.Interface, config *restclient.Config, 
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
 	variables := GetTerraformVariables(apply)
-	cmd := "cd " + HCL_DIR + ";" + variables + "terraform apply -auto-approve"
+	cmd := "cd " + HCL_DIR + ";" + "terraform apply -auto-approve" + variables
 	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
@@ -217,7 +217,7 @@ func ExecTerraformDestroy(client kubernetes.Interface, config *restclient.Config
 	stdin io.Reader, stdout io.Writer, stderr io.Writer, apply *claimv1alpha1.TFApplyClaim) error {
 
 	variables := GetTerraformVariables(apply)
-	cmd := "cd " + HCL_DIR + ";" + variables + "terraform destroy -auto-approve"
+	cmd := "cd " + HCL_DIR + ";" + "terraform destroy -auto-approve" + variables
 	err := execPodCmd(client, config, podName, podNamespace, cmd, nil, stdout, stderr)
 
 	if err != nil {
