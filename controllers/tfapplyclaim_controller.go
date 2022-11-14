@@ -17,6 +17,11 @@ limitations under the License.
 package controllers
 
 import (
+	// appsv1 "k8s.io/api/apps/v1"
+
+	"reflect"
+	"time"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +34,9 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	claimv1alpha1 "github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 	"github.com/tmax-cloud/tfc-operator/util"
@@ -49,7 +57,6 @@ type TFApplyClaimReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups="",resources=secrets;namespaces;serviceaccounts,verbs=create;delete;get;list;patch;post;update;watch;
-
 
 func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
@@ -80,6 +87,16 @@ func (r *TFApplyClaimReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, ret
 			reterr = err
 		}
 	}()
+
+	if !controllerutil.ContainsFinalizer(tfapplyclaim, claimv1alpha1.TFApplyClaimFinalizer) {
+		controllerutil.AddFinalizer(tfapplyclaim, claimv1alpha1.TFApplyClaimFinalizer)
+		return ctrl.Result{}, nil
+	}
+
+	if !tfapplyclaim.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(context.TODO(), tfapplyclaim)
+	}
+
 	return r.reconcile(context.TODO(), tfapplyclaim)
 }
 
@@ -93,10 +110,43 @@ func (r *TFApplyClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	_, err := ctrl.NewControllerManagedBy(mgr).
 		For(&claimv1alpha1.TFApplyClaim{}).
-		Owns(&appsv1.Deployment{}).
-		Complete(r)
+		WithEventFilter(
+			predicate.Funcs{
+				CreateFunc: func(e event.CreateEvent) bool {
+					return true
+				},
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					oldtfc := e.ObjectOld.(*claimv1alpha1.TFApplyClaim)
+					newtfc := e.ObjectNew.(*claimv1alpha1.TFApplyClaim)
+					isFinalized := !controllerutil.ContainsFinalizer(oldtfc, claimv1alpha1.TFApplyClaimFinalizer) &&
+						controllerutil.ContainsFinalizer(newtfc, claimv1alpha1.TFApplyClaimFinalizer)
+					isDelete := oldtfc.DeletionTimestamp.IsZero() &&
+						!newtfc.DeletionTimestamp.IsZero()
+					actionChanged := (newtfc.Status.Action != "") && (oldtfc.Status.Action != newtfc.Status.Action)
+					isDestroy := newtfc.Spec.Destroy
+					specChanged := !reflect.DeepEqual(oldtfc.Spec, newtfc.Spec)
+					if isDelete || isFinalized || actionChanged || isDestroy || specChanged {
+						return true
+					}
+					return false
+				},
+				DeleteFunc: func(e event.DeleteEvent) bool {
+					return false
+				},
+				GenericFunc: func(e event.GenericEvent) bool {
+					return false
+				},
+			},
+		).
+		Build(r)
+
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 // reconcile handles cluster reconciliation.
@@ -107,17 +157,18 @@ func (r *TFApplyClaimReconciler) reconcile(ctx context.Context, tfapplyclaim *cl
 	// 공통적으로 수행
 	phases = append(
 		phases,
-		r.ReadyClaim,
+		r.ReadyClaimPhase,
 	)
-
-	if action == "Approve" || action == "Reject" {
-		phases = append(phases, r.ApproveClaim)
+	if action == "Reject" {
+		phases = append(phases, r.RejectClaimPhase)
+	} else if action == "Approve" {
+		phases = append(phases, r.ApproveClaimPhase)
 	} else if action == "Plan" {
-		phases = append(phases, r.PlanClaim)
+		phases = append(phases, r.PlanClaimPhase)
 	} else if action == "Apply" {
-		phases = append(phases, r.ApplyClaim)
+		phases = append(phases, r.ApplyClaimPhase)
 	} else if tfapplyclaim.Spec.Destroy == true {
-		phases = append(phases, r.DestroyClaim)
+		phases = append(phases, r.DestroyClaimPhase)
 	}
 
 	res := ctrl.Result{}
@@ -139,4 +190,29 @@ func (r *TFApplyClaimReconciler) reconcile(ctx context.Context, tfapplyclaim *cl
 	}
 
 	return res, kerrors.NewAggregate(errs)
+}
+
+func (r *TFApplyClaimReconciler) reconcileDelete(ctx context.Context, tfapplyclaim *claimv1alpha1.TFApplyClaim) (ctrl.Result, error) {
+	log := r.Log.WithValues("clustermanager", tfapplyclaim.GetNamespacedName())
+	log.Info("Start reconcile phase for delete")
+	dep := &appsv1.Deployment{}
+	err := r.Get(ctx, tfapplyclaim.GetNamespacedName(), dep)
+	if errors.IsNotFound(err) {
+		log.Info("Deleted deployment successfully")
+		controllerutil.RemoveFinalizer(tfapplyclaim, claimv1alpha1.TFApplyClaimFinalizer)
+		return ctrl.Result{}, nil
+	} else if err != nil {
+		tfapplyclaim.Status.Phase = "Error"
+		log.Error(err, "Failed to get deployment")
+		return ctrl.Result{RequeueAfter: time.Second}, err
+	}
+
+	if err := r.Delete(context.TODO(), dep); err != nil {
+		log.Error(err, "Failed to delete deployment ")
+		return ctrl.Result{}, err
+	}
+
+	tfapplyclaim.Status.Phase = "Deleting"
+	log.Info("Wait for deployment to be deleted")
+	return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 }

@@ -23,7 +23,7 @@ spec:
       name: Type
       type: string
     - jsonPath: .status.phase
-      name: Status
+      name: Phase
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -67,9 +67,8 @@ spec:
                 description: Git URL (HCL Code)
                 type: string
               variable:
-                description: 'Terraform Variable. Example: { "AWS_ACCESS_KEY_ID" :
-                  "aws-access-key", "AWS_SECRET_ACCESS_KEY" : "aws-secret-access-key"
-                  }'
+                description: 'Terraform Variable. Example: AWS_ACCESS_KEY_ID=aws-access-key,
+                  AWS_SECRET_ACCESS_KEY=aws-secret-access-key'
                 type: string
               version:
                 description: 'Terraform CLI Version. Example: 0.12.3'

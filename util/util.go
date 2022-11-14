@@ -1,6 +1,10 @@
 package util
 
 import (
+	"fmt"
+	"strings"
+
+	claimv1alpha1 "github.com/tmax-cloud/tfc-operator/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -21,4 +25,22 @@ func LowestNonZeroResult(i, j ctrl.Result) ctrl.Result {
 	default:
 		return j
 	}
+}
+
+func GetTerraformVariables(tfapply *claimv1alpha1.TFApplyClaim) string {
+
+	// 변수 입력 확인 프롬프트 때문에 지연되는 것을 방지
+	cmd := " --input=false "
+	if tfapply.Spec.Variable == "" {
+		return cmd
+	}
+
+	variableList := strings.Split(tfapply.Spec.Variable, ",")
+
+	for _, v := range variableList {
+		value := strings.Trim(v, " ")
+		cmd += fmt.Sprintf("-var=%s ", value)
+	}
+
+	return cmd
 }
