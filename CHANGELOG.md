@@ -1,6 +1,25 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.36.0 start -------------------->
+
+## tfc-operator_5.0.36.0 (2022. 11. 14. (월) 18:48:25 KST)
+
+### Added
+  - [feat] 기능 고도화, 불필요한 requeue 제거, reject error 해결, tf 변수 사용법 간소화 by sjoh0704
+
+### Changed
+  - [mod] terraform 변수 입력시 stuck 걸리는 error fix by sjoh0704
+  - [mod] error 수정 by sjoh0704
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.36.0 end --------------------->
+
 <!-------------------- v5.0.35.0 start -------------------->
 
 ## tfc-operator_5.0.35.0 (2022. 11. 11. (금) 11:30:55 KST)
