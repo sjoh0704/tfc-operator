@@ -48,7 +48,7 @@ type TFApplyClaimSpec struct {
 	Branch string `json:"branch,omitempty"`
 	// Secret Name for Git Credential
 	Secret string `json:"secret,omitempty"`
-	// Whether to perform "terraform destory"
+	// Set to FALSE for performing "terraform destroy"
 	Destroy bool `json:"destroy,omitempty"`
 	// Terraform Variable. Example: AWS_ACCESS_KEY_ID=aws-access-key, AWS_SECRET_ACCESS_KEY=aws-secret-access-key
 	Variable string `json:"variable,omitempty"`

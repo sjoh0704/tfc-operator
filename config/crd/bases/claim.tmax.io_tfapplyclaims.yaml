@@ -52,7 +52,7 @@ spec:
                 description: Git Branch
                 type: string
               destroy:
-                description: Whether to perform "terraform destory"
+                description: Set to FALSE for performing "terraform destroy"
                 type: boolean
               secret:
                 description: Secret Name for Git Credential
