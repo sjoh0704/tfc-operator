@@ -1,6 +1,24 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.36.1 start -------------------->
+
+## tfc-operator_5.0.36.1 (2022. 11. 18. (금) 10:16:18 KST)
+
+### Added
+  - [feat] fix crd manifest error by sjoh0704
+
+### Changed
+
+### Fixed
+  - [ims][294005] 테라폼 클레임 crd description 수정 요청 by sjoh0704
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.36.1 end --------------------->
+
 <!-------------------- v5.0.36.0 start -------------------->
 
 ## tfc-operator_5.0.36.0 (2022. 11. 14. (월) 18:48:25 KST)
