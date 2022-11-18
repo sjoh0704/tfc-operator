@@ -1,6 +1,23 @@
 # tfc-operator changelog!!
 All notable changes to this project will be documented in this file.
 
+<!-------------------- v5.0.36.2 start -------------------->
+
+## tfc-operator_5.0.36.2 (2022. 11. 18. (금) 10:38:10 KST)
+
+### Added
+
+### Changed
+  - [mod] crd description 재변경 by sjoh0704
+
+### Fixed
+
+### CRD yaml
+
+### Etc
+
+<!--------------------- v5.0.36.2 end --------------------->
+
 <!-------------------- v5.0.36.1 start -------------------->
 
 ## tfc-operator_5.0.36.1 (2022. 11. 18. (금) 10:16:18 KST)
