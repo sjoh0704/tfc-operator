@@ -15,6 +15,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:crdVersions=v1,trivialVersions=true"
+CRD_OPTIONS_V1 ?= "crd:crdVersions=v1"
+CRD_OPTIONS_V1BETA1 ?= "crd:crdVersions=v1beta1,preserveUnknownFields=false"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -63,6 +65,13 @@ deploy-test: manifests kustomize
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
+manifests_v1: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS_V1) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
+manifests_v1beta1: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS_V1BETA1) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
 
 # Run go fmt against code
 fmt:
